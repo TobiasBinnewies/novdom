@@ -1,9 +1,13 @@
+import {} from "./globals.mjs"
+
 const TEXT = "_TEXT_"
 const STATE = "_STATE_"
 const STATEFUL = "_STATEFUL_"
 
-window.state_map = new Map()
-window.stateful_component_map = new Map()
+export function init() {
+  window.state_map = new Map()
+  window.stateful_component_map = new Map()
+}
 
 export function create_text_element(value) {
   const elem = document.createElement(TEXT)

@@ -403,8 +403,10 @@ function hstack(alignment, spacing, children) {
 var TEXT = "_TEXT_";
 var STATE = "_STATE_";
 var STATEFUL = "_STATEFUL_";
-window.state_map = /* @__PURE__ */ new Map();
-window.stateful_component_map = /* @__PURE__ */ new Map();
+function init() {
+  window.state_map = /* @__PURE__ */ new Map();
+  window.stateful_component_map = /* @__PURE__ */ new Map();
+}
 function create_text_element(value) {
   const elem = document.createElement(TEXT);
   elem.innerText = value;
@@ -502,9 +504,9 @@ var State = class extends CustomType {
     this.id = id;
   }
 };
-function create(init, to_string4) {
+function create(init2, to_string4) {
   let id = create_id();
-  set_state(id, init, to_string4);
+  set_state(id, init2, to_string4);
   return new State(id);
 }
 function stateful_component(state, render) {
@@ -559,6 +561,7 @@ function panel2(state) {
   );
 }
 function main() {
+  init();
   let state1 = create(
     toList(["A", "B", "C"]),
     (a) => {

@@ -1,8 +1,8 @@
 import gleam/list
+import libs/attribute.{type Attribute}
 import libs/component.{
   type Component, Component, StateContainer, StatefulComponent, TextContainer,
 }
-import libs/attribute.{type Attribute}
 import libs/listener.{type Listener}
 
 pub type HTMLElement
@@ -30,12 +30,8 @@ pub fn get_element(component: Component) -> HTMLElement {
   }
 }
 
-// pub fn init() {
-//   create_state_map()
-// }
-
-// @external(javascript, "../document_ffi.mjs", "create_state_map")
-// pub fn create_state_map() -> Nil
+@external(javascript, "../document_ffi.mjs", "init")
+pub fn init() -> Nil
 
 @external(javascript, "../document_ffi.mjs", "create_text_element")
 fn create_text_element(value: String) -> HTMLElement
