@@ -166,6 +166,23 @@ var MASK = BUCKET_SIZE - 1;
 var MAX_INDEX_NODE = BUCKET_SIZE / 2;
 var MIN_ARRAY_NODE = BUCKET_SIZE / 4;
 
+// build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
+function join(xs, separator) {
+  const iterator = xs[Symbol.iterator]();
+  let result = iterator.next().value || "";
+  let current = iterator.next();
+  while (!current.done) {
+    result = result + separator + current.value;
+    current = iterator.next();
+  }
+  return result;
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/string.mjs
+function join2(strings, separator) {
+  return join(strings, separator);
+}
+
 // build/dev/javascript/iui/libs/attribute.mjs
 function class$(value) {
   return ["class", value];
@@ -203,6 +220,13 @@ var StateContainer = class extends CustomType {
   constructor(state_id) {
     super();
     this.state_id = state_id;
+  }
+};
+var StatefulComponent = class extends CustomType {
+  constructor(state_id, component_id) {
+    super();
+    this.state_id = state_id;
+    this.component_id = component_id;
   }
 };
 function component(tag) {
@@ -256,6 +280,12 @@ var VRight = class extends CustomType {
 };
 var VCenter = class extends CustomType {
 };
+var HTop = class extends CustomType {
+};
+var HBottom = class extends CustomType {
+};
+var HCenter = class extends CustomType {
+};
 var Gap = class extends CustomType {
   constructor(x0) {
     super();
@@ -270,11 +300,15 @@ var BetweenSpacing = class extends CustomType {
 };
 var VerticalDirection = class extends CustomType {
 };
+var HorizontalDirection = class extends CustomType {
+};
 var VerticalScroll = class extends CustomType {
 };
 var HorizontalScroll = class extends CustomType {
 };
 var Scroll = class extends CustomType {
+};
+var NoScroll = class extends CustomType {
 };
 var stack_tag = "_stack_";
 function stack(direction, align, spacing, scrolling, children) {
@@ -328,7 +362,7 @@ function stack(direction, align, spacing, scrolling, children) {
   );
   return with_children(_pipe$1, children);
 }
-function vscroll(alignment, spacing, children) {
+function vstack(alignment, spacing, children) {
   let align = (() => {
     if (alignment instanceof VLeft) {
       return "flex-start";
@@ -342,7 +376,25 @@ function vscroll(alignment, spacing, children) {
     new VerticalDirection(),
     align,
     spacing,
-    new VerticalScroll(),
+    new NoScroll(),
+    children
+  );
+}
+function hstack(alignment, spacing, children) {
+  let align = (() => {
+    if (alignment instanceof HTop) {
+      return "flex-start";
+    } else if (alignment instanceof HBottom) {
+      return "flex-end";
+    } else {
+      return "center";
+    }
+  })();
+  return stack(
+    new HorizontalDirection(),
+    align,
+    spacing,
+    new NoScroll(),
     children
   );
 }
@@ -371,6 +423,7 @@ function create_stateful_element(component_id, state_id, child) {
   const render = get_stateful_component(component_id);
   elem.setAttribute("id", component_id);
   elem.setAttribute("class", state_id);
+  elem.setAttribute("style", "height: 100%; width: 100%;");
   elem.appendChild(render(value));
   return elem;
 }
@@ -392,6 +445,9 @@ function set_state(id, value, to_string4) {
 }
 function get_state(id) {
   return window.state_map.get(id).value;
+}
+function add_stateful_component(id, render) {
+  window.stateful_component_map.set(id, render);
 }
 function get_stateful_component(id) {
   return window.stateful_component_map.get(id);
@@ -433,11 +489,10 @@ function div(attributes, children) {
   let _pipe$1 = with_attributes(_pipe, attributes);
   return with_children(_pipe$1, children);
 }
-var h1_tag = "h1";
-function h1(attributes, children) {
-  let _pipe = component(h1_tag);
-  let _pipe$1 = with_attributes(_pipe, attributes);
-  return with_children(_pipe$1, children);
+
+// build/dev/javascript/iui/utils_ffi.mjs
+function create_id() {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 12).padStart(12, 0);
 }
 
 // build/dev/javascript/iui/libs/state.mjs
@@ -447,28 +502,79 @@ var State = class extends CustomType {
     this.id = id;
   }
 };
-function create_with_id(id, init, to_string4) {
+function create(init, to_string4) {
+  let id = create_id();
   set_state(id, init, to_string4);
   return new State(id);
 }
+function stateful_component(state, render) {
+  let id = create_id();
+  let render$1 = (a) => {
+    let comp = render(a);
+    return get_element(comp);
+  };
+  add_stateful_component(id, render$1);
+  return new StatefulComponent(state.id, id);
+}
 
 // build/dev/javascript/iui/iui.mjs
+function panel1(state) {
+  return stateful_component(
+    state,
+    (letters) => {
+      return hstack(
+        new HCenter(),
+        new EvenSpacing(),
+        map(
+          letters,
+          (letter) => {
+            return div(
+              toList([class$("p-5 bg-blue-100")]),
+              toList([text(letter)])
+            );
+          }
+        )
+      );
+    }
+  );
+}
+function panel2(state) {
+  return stateful_component(
+    state,
+    (letters) => {
+      return hstack(
+        new HCenter(),
+        new EvenSpacing(),
+        map(
+          letters,
+          (letter) => {
+            return div(
+              toList([class$("p-5 bg-green-100")]),
+              toList([text(letter)])
+            );
+          }
+        )
+      );
+    }
+  );
+}
 function main() {
-  let test_state = create_with_id("id123", "INIT", (a) => {
-    return a;
-  });
-  let component2 = vscroll(
+  let state1 = create(
+    toList(["A", "B", "C"]),
+    (a) => {
+      return join2(a, ", ");
+    }
+  );
+  let state2 = create(
+    toList(["D", "E"]),
+    (a) => {
+      return join2(a, ", ");
+    }
+  );
+  let component2 = vstack(
     new VCenter(),
-    new Gap("50px"),
-    toList([
-      div(
-        toList([class$("bg-green-300 min-h-[500px]")]),
-        toList([text("Hello,  LAAAAAGNGE TTEXt!")])
-      ),
-      h1(toList([]), toList([text("Hello, World!")])),
-      h1(toList([]), toList([text("Hello, World!")])),
-      h1(toList([]), toList([text("Hello, World!")]))
-    ])
+    new EvenSpacing(),
+    toList([panel1(state1), panel2(state2)])
   );
   return start(component2);
 }

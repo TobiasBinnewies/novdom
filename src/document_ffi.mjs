@@ -20,13 +20,14 @@ export function create_state_element(state_id) {
 }
 
 export function create_stateful_element(component_id, state_id, child) {
-    const elem = document.createElement(STATEFUL)
-    const value = get_state(state_id)
-    const render = get_stateful_component(component_id)
-    elem.setAttribute("id", component_id)
-    elem.setAttribute("class", state_id)
-    elem.appendChild(render(value))
-    return elem
+  const elem = document.createElement(STATEFUL)
+  const value = get_state(state_id)
+  const render = get_stateful_component(component_id)
+  elem.setAttribute("id", component_id)
+  elem.setAttribute("class", state_id)
+  elem.setAttribute("style", "height: 100%; width: 100%;")
+  elem.appendChild(render(value))
+  return elem
 }
 
 export function create_element(tag, attributes, children, listeners) {
@@ -34,9 +35,7 @@ export function create_element(tag, attributes, children, listeners) {
   children.toArray().forEach((child) => elem.appendChild(child))
   attributes.toArray().forEach((attr) => elem.setAttribute(attr[0], attr[1]))
   if (listeners) {
-    listeners
-      .toArray()
-      .forEach((listener) => elem.addEventListener(listener[0], listener[1]))
+    listeners.toArray().forEach((listener) => elem.addEventListener(listener[0], listener[1]))
   }
   return elem
 }

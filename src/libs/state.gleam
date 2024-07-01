@@ -7,7 +7,7 @@ pub opaque type State(a) {
 }
 
 pub fn create(init: a, to_string: fn(a) -> String) -> State(a) {
-  let id = utils.create_id()
+  let id = utils.unique_id()
   set_state(id, init, to_string)
   State(id)
 }
@@ -45,7 +45,7 @@ pub fn stateful_component(
   state: State(a),
   render: fn(a) -> Component,
 ) -> Component {
-  let id = utils.create_id()
+  let id = utils.unique_id()
   let render = fn(a) {
     let comp = render(a)
     framework.get_element(comp)

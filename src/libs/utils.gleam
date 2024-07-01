@@ -1,2 +1,2 @@
 @external(javascript, "../utils_ffi.mjs", "create_id")
-pub fn create_id() -> String
+pub fn unique_id() -> String
