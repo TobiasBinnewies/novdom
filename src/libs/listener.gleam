@@ -39,5 +39,5 @@ pub type MousePosition {
   )
 }
 
-@external(javascript, "../event_ffi.mjs", "get_mouse_pos")
+@external(javascript, "../position_ffi.mjs", "get_mouse_pos")
 pub fn get_mouse_position(event: Event) -> MousePosition

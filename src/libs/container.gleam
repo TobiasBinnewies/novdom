@@ -1,13 +1,11 @@
 import gleam/io
 import gleam/list
 import libs/attribute.{type Attribute, style}
-import libs/component.{type Component, component, with_attributes, with_children}
+import libs/component.{type Component, component, set_attributes, set_children}
 
-const stack_tag = "_stack_"
+const stack_tag = "_STACK_"
 
-const item_tag = "_item_"
-
-const scroll_tag = "_scroll_"
+const item_tag = "_ITEM_"
 
 pub type VAlignment {
   VLeft
@@ -56,7 +54,7 @@ pub type Scroll {
 pub fn vstack(
   alignment: VAlignment,
   spacing: Spacing,
-  children: List(Component),
+  children: fn(Component) -> List(Component),
 ) -> Component {
   let align = case alignment {
     VLeft -> "flex-start"
@@ -69,7 +67,7 @@ pub fn vstack(
 pub fn vscroll(
   alignment: VAlignment,
   spacing: Spacing,
-  children: List(Component),
+  children: fn(Component) -> List(Component),
 ) -> Component {
   let align = case alignment {
     VLeft -> "flex-start"
@@ -82,7 +80,7 @@ pub fn vscroll(
 pub fn hstack(
   alignment: HAlignment,
   spacing: Spacing,
-  children: List(Component),
+  children: fn(Component) -> List(Component),
 ) -> Component {
   let align = case alignment {
     HTop -> "flex-start"
@@ -95,7 +93,7 @@ pub fn hstack(
 pub fn hscroll(
   alignment: HAlignment,
   spacing: Spacing,
-  children: List(Component),
+  children: fn(Component) -> List(Component),
 ) -> Component {
   let align = case alignment {
     HTop -> "flex-start"
@@ -105,7 +103,10 @@ pub fn hscroll(
   stack(HorizontalDirection, align, spacing, HorizontalScroll, children)
 }
 
-pub fn zstack(alignment: ZAlignment, children: List(Component)) -> Component {
+pub fn zstack(
+  alignment: ZAlignment,
+  children: fn(Component) -> List(Component),
+) -> Component {
   let position = case alignment {
     ZTop -> [#("left", "50%"), #("transform", "translateX(-50%)")]
     ZBottom -> [
@@ -130,10 +131,21 @@ pub fn zstack(alignment: ZAlignment, children: List(Component)) -> Component {
     ZBottomRight -> [#("bottom", "0"), #("right", "0")]
   }
 
+  let stack =
+    component(stack_tag)
+    |> set_attributes([
+      style([
+        #("display", "block"),
+        #("position", "relative"),
+        #("height", "100%"),
+        #("width", "100%"),
+      ]),
+    ])
+
   let children =
-    list.map(children, fn(c) {
+    list.map(children(stack), fn(c) {
       component(item_tag)
-      |> with_attributes([
+      |> set_attributes([
         style([
           #("position", "absolute"),
           #("min-width", "max-content"),
@@ -142,19 +154,11 @@ pub fn zstack(alignment: ZAlignment, children: List(Component)) -> Component {
           ..position
         ]),
       ])
-      |> with_children([c])
+      |> set_children([c])
     })
 
-  component(stack_tag)
-  |> with_attributes([
-    style([
-      #("display", "block"),
-      #("position", "relative"),
-      #("height", "100%"),
-      #("width", "100%"),
-    ]),
-  ])
-  |> with_children(children)
+  stack
+  |> set_children(children)
 }
 
 fn stack(
@@ -162,7 +166,7 @@ fn stack(
   align: String,
   spacing: Spacing,
   scrolling: Scroll,
-  children: List(Component),
+  children: fn(Component) -> List(Component),
 ) -> Component {
   let spacing = case spacing {
     Gap(value) -> #("gap", value)
@@ -185,9 +189,10 @@ fn stack(
   }
 
   component(stack_tag)
-  |> with_attributes([
+  |> set_attributes([
     style([
       #("height", "100%"),
+      #("width", "100%"),
       #("display", "flex"),
       #("flex-direction", direction),
       #("align-items", align),
@@ -195,5 +200,5 @@ fn stack(
       spacing,
     ]),
   ])
-  |> with_children(children)
+  |> fn(c) { c |> set_children(children(c)) }
 }

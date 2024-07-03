@@ -10,3 +10,7 @@ export function get_mouse_pos(mouseevent) {
         screen_y: mouseevent.screenY,
     }
 }
+
+export function get_component_rect(comp) {
+  return document.getElementById(comp.id).getBoundingClientRect()
+}

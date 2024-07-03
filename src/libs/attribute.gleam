@@ -17,7 +17,15 @@ pub fn class(value: String) -> Attribute {
 pub fn style(values: List(#(String, String))) -> Attribute {
   let res = {
     use res, #(key, value) <- list.fold(values, "")
-    res <> key <> ":" <> value <> ";"
+    case value {
+      "" -> res <> key <> ";"
+      _ -> res <> key <> ":" <> value <> ";"
+    }
   }
   #("style", res)
 }
+
+pub fn hidden() -> Attribute {
+  #("hidden", "hidden")
+}
+
