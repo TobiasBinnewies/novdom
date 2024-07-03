@@ -1,9 +1,7 @@
 import gleam/io
 import gleam/option.{type Option, None, Some}
-import libs/attribute.{style}
-import libs/component.{
-  type Component, add_attribute, add_listener, component, element, set_children,
-}
+import libs/attribute.{add_attribute, style}
+import libs/component.{type Component, copy, empty_component, set_children}
 import libs/listener.{
   onemouseover, onmousedown, onmousemove, onmouseout, onmouseup,
 }
@@ -45,7 +43,7 @@ pub fn ondrag(
   let drag_event = state.from_id(drag_event_id)
 
   let preview =
-    component(drag_event_id)
+    empty_component(drag_event_id)
     |> add_attribute(
       style([
         #("position", "absolute"),
@@ -60,15 +58,13 @@ pub fn ondrag(
     |> set_children([preview])
 
   comp
-  |> add_listener(
-    onmousedown(fn(_) {
-      let event = DragEvent(value, comp, preview, on_drop, on_cancel, False)
-      state.update(drag_event, Some(event))
+  |> onmousedown(fn(_, _) {
+    let event = DragEvent(value, comp, preview, on_drop, on_cancel, False)
+    state.update(drag_event, Some(event))
 
-      add_to_viewport("#_drag_", element(preview))
-      on_drag(event)
-    }),
-  )
+    add_to_viewport(preview |> copy, "_drag_")
+    on_drag(event)
+  })
 }
 
 pub fn ondrop(
@@ -88,66 +84,60 @@ pub fn ondrop(
   })
 
   comp
-  |> add_listener(
-    onemouseover(fn(_) {
-      case state.value(drag_event) {
-        Some(DragEvent(value, source, preview, cleanup, cancel, droppable)) -> {
-          let event =
-            DragEvent(value, source, preview, cleanup, cancel, droppable)
-          state.update(
-            drag_event,
-            Some(DragEvent(
-              value,
-              source,
-              preview,
-              cleanup,
-              cancel,
-              on_hover(event),
-            )),
-          )
-        }
-        _ -> Nil
+  |> onemouseover(fn(_, _) {
+    case state.value(drag_event) {
+      Some(DragEvent(value, source, preview, cleanup, cancel, droppable)) -> {
+        let event =
+          DragEvent(value, source, preview, cleanup, cancel, droppable)
+        state.update(
+          drag_event,
+          Some(DragEvent(
+            value,
+            source,
+            preview,
+            cleanup,
+            cancel,
+            on_hover(event),
+          )),
+        )
       }
-    }),
-  )
-  |> add_listener(
-    onmouseout(fn(_) {
-      case state.value(drag_event) {
-        Some(event) -> {
-          state.update(
-            drag_event,
-            Some(DragEvent(
-              event.value,
-              event.source,
-              event.preview,
-              event.drop,
-              event.cancel,
-              False,
-            )),
-          )
-        }
-        _ -> Nil
+      _ -> Nil
+    }
+  })
+  |> onmouseout(fn(_, _) {
+    case state.value(drag_event) {
+      Some(event) -> {
+        state.update(
+          drag_event,
+          Some(DragEvent(
+            event.value,
+            event.source,
+            event.preview,
+            event.drop,
+            event.cancel,
+            False,
+          )),
+        )
       }
-    }),
-  )
-  |> add_listener(
-    onmouseup(fn(_) {
-      case state.value(drag_event) {
-        Some(event) if event.droppable -> {
-          event.drop(event)
-          on_drop(event, cleanup())
-        }
-        _ -> Nil
+      _ -> Nil
+    }
+  })
+  |> onmouseup(fn(_, _) {
+    case state.value(drag_event) {
+      Some(event) if event.droppable -> {
+        event.drop(event)
+        on_drop(event, cleanup())
       }
-    }),
-  )
+      _ -> Nil
+    }
+  })
 }
 
 fn cleanup() -> fn() -> Nil {
   let state = state.from_id(drag_event_id)
   fn() {
     state.update(state, None)
-    clear_viewport("#_drag_")
+    clear_viewport("_drag_")
   }
 }
 

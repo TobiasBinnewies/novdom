@@ -1,8 +1,6 @@
 import {} from "./globals.mjs"
 
 const TEXT = "_TEXT_"
-// const STATE = "_STATE_"
-// const STATEFUL = "_STATEFUL_"
 
 // ------------------------------- VIEWPORT --------------------------------
 
@@ -12,13 +10,18 @@ export function init() {
   window.state_listener = new Map()
 }
 
-export function add_to_viewport(id, elem) {
-  const viewport = document.querySelector(id)
+function add_to_unrendered(elem) {
+  document.getElementById("_unrendered_").appendChild(elem)
+}
+
+export function add_to_viewport(comp, id) {
+  const elem = get_element(comp)
+  const viewport = document.getElementById(id)
   viewport.appendChild(elem)
 }
 
 export function clear_viewport(id) {
-  const viewport = document.querySelector(id)
+  const viewport = document.getElementById(id)
   viewport.replaceChildren()
 }
 
@@ -32,45 +35,41 @@ export function create_text_element(id, attributes, value) {
   return elem
 }
 
-// export function create_state_element(id, state_id) {
-//   const elem = document.createElement(STATE)
-//   const value = get_state(state_id)
-//   elem.setAttribute("class", state_id)
-//   elem.setAttribute("id", id)
-//   elem.innerText = value
-//   return elem
-// }
-
-// export function create_stateful_element(id, state_id) {
-//   const elem = document.createElement(STATEFUL)
-//   const value = get_state(state_id)
-//   const render = get_stateful_component(id)
-//   elem.setAttribute("id", id)
-//   elem.setAttribute("class", state_id)
-//   elem.setAttribute("style", "height: 100%; width: 100%;")
-//   elem.appendChild(render(value))
-//   return elem
-// }
-
-export function create_element(id, tag, attributes, children, listeners) {
-  const existing = document.getElementById(id)
-  if (existing) return existing
-  const elem = document.createElement(tag)
-  elem.setAttribute("id", id)
-  attributes.toArray().forEach((attr) => elem.setAttribute(attr[0], attr[1]))
-  children.toArray().forEach((child) => elem.appendChild(child))
-  listeners.toArray().forEach((listener) => elem.addEventListener(listener[0], listener[1]))
+export function get_element(comp) {
+  if (comp.id === TEXT) {
+    return comp.tag
+  }
+  const existing = document.getElementById(comp.id)
+  if (existing) {
+    return existing
+  }
+  const elem = document.createElement(comp.tag)
+  elem.setAttribute("id", comp.id)
+  // attributes.toArray().forEach((attr) => elem.setAttribute(attr[0], attr[1]))
+  // children.toArray().forEach((child) => elem.appendChild(child))
+  // listeners.toArray().forEach((listener) => elem.addEventListener(listener[0], listener[1]))
+  add_to_unrendered(elem)
   return elem
+}
+
+export function create_copy(comp, new_id) {
+  const elem = get_element(comp)
+  const copy = elem.cloneNode(true)
+  copy.setAttribute("id", new_id)
+  add_to_unrendered(copy)
+  return { id: new_id, tag: comp.tag }
+}
+
+export function set_inner_text(comp, text) {
+  const elem = get_element(comp)
+  elem.innerText = text
+  return comp
 }
 
 // ------------------------------- ATTRIBUTES --------------------------------
 
-export function set_attributes(comp_id, attributes) {
-  const elem = document.getElementById(comp_id)
-  if (!elem) {
-    console.error("set_attributes: element not found: " + comp_id)
-    return false
-  }
+export function set_attributes(comp, attributes) {
+  const elem = get_element(comp)
   // remove all attributes except id
   const keys = Object.keys(elem.attributes)
   keys.forEach((key) => {
@@ -78,32 +77,26 @@ export function set_attributes(comp_id, attributes) {
       elem.removeAttribute(elem.attributes[key].name)
     }
   })
-  attributes.toArray().forEach((attr) => add_attribute(comp_id, attr))
-  return true
+  attributes.toArray().forEach((attr) => add_attribute(comp, attr))
+  return comp
 }
 
-export function add_attribute(comp_id, attribute) {
-  const elem = document.getElementById(comp_id)
-  if (!elem) {
-    console.error("add_attribute: element not found: " + comp_id)
-    return false
-  }
-  return handle_attribute(elem, attribute[0], attribute[1], false)
+export function add_attribute(comp, attribute) {
+  const elem = get_element(comp)
+  handle_attribute(elem, attribute[0], attribute[1], false)
+  return comp
 }
 
-export function remove_attribute(comp_id, attribute) {
-  const elem = document.getElementById(comp_id)
-  if (!elem) {
-    console.error("remove_attribute: element not found: " + comp_id)
-    return false
-  }
-  return handle_attribute(elem, attribute[0], attribute[1], true)
+export function remove_attribute(comp, attribute) {
+  const elem = get_element(comp)
+  handle_attribute(elem, attribute[0], attribute[1], true)
+  return comp
 }
 
 function handle_attribute(elem, key, value, remove) {
   if (value === "" || value.length === 0) {
     elem.removeAttribute(key)
-    return true
+    return
   }
   switch (key) {
     case "class":
@@ -114,7 +107,7 @@ function handle_attribute(elem, key, value, remove) {
         }
         elem.classList.add(cls)
       })
-      return true
+      return
     case "style":
       value.split(";").forEach((style) => {
         if (!style.includes(":")) {
@@ -128,117 +121,85 @@ function handle_attribute(elem, key, value, remove) {
         }
         elem.style.setProperty(split[0], split[1].trim())
       })
-      return true
+      return
     case "hidden":
       if (remove) {
         elem.hidden = false
-        return true
+        return
       }
       elem.hidden = true
-      return true
+      return
     default:
       console.error("add_attribute: unknown attribute key / not implemented yet: " + key)
-      return false
+      return
   }
 }
 
 // ------------------------------- LISTENER --------------------------------
 
-export function add_listeners(comp_id, listeners) {
-  const elem = document.getElementById(comp_id)
-  if (!elem) {
-    console.error("add_listeners: element not found: " + comp_id)
-    return false
-  }
-  listeners.toArray().forEach((listener) => elem.addEventListener(listener[0], listener[1]))
-  return true
+export function add_listener(comp, listener) {
+  const elem = get_element(comp)
+  elem.addEventListener(listener[0], listener[1])
+  return comp
 }
 
 // ------------------------------- CHILDREN --------------------------------
 
-export function set_children(comp_id, children) {
-  const elem = document.getElementById(comp_id)
-  if (!elem) {
-    console.error("set_children: element not found: " + comp_id)
-    return false
-  }
-  elem.replaceChildren(children.toArray())
-  return true
+export function set_children(comp, children_comp) {
+  const elem = get_element(comp)
+  const children = children_comp.toArray().map(get_element)
+  elem.replaceChildren(...children)
+  return comp
 }
 
-export function insert_child_at(comp_id, child, at) {
-  const elem = document.getElementById(comp_id)
-  if (!elem) {
-    console.error("insert_child_at: element not found: " + comp_id)
-    return false
-  }
+export function insert_child_at(comp, child_comp, at) {
+  const elem = get_element(comp)
+  const child = get_element(child_comp)
   if (elem.children.length <= at) {
     elem.appendChild(child)
-    return true
+    return comp
   }
   elem.insertBefore(child, elem.children[at])
-  return true
+  return comp
 }
 
-export function insert_child_before(comp_id, child, before_id) {
-  const elem = document.getElementById(comp_id)
-  if (!elem) {
-    console.error("insert_child_before: element not found: " + comp_id)
-    return false
-  }
+export function insert_child_before(comp, child_comp, before_id) {
+  const elem = get_element(comp)
+  const child = get_element(child_comp)
   const before_elem = elem.children[before_id]
   if (!before_elem) {
-    console.error("insert_child_before: before element not found: " + before_id)
-    return false
+    console.error("insert_child_before: element not found: " + before_id)
+    return comp
   }
   elem.insertBefore(child, before_elem)
-  return true
+  return comp
 }
 
-export function remove_child_at(comp_id, at) {
-  const elem = document.getElementById(comp_id)
-  if (!elem) {
-    console.error("remove_child_at: element not found: " + comp_id)
-    return false
-  }
+export function remove_child_at(comp, at) {
+  const elem = get_element(comp)
   if (elem.children.length <= at) {
-    console.error("remove_child_at: index out of bounds: " + at)
-    return false
+    console.error("remove_child_at: index out of bound: " + at)
+    return comp
   }
   elem.removeChild(elem.children[at])
-  return true
+  return comp
 }
 
-export function remove_child(comp_id, child_id) {
-  const elem = document.getElementById(comp_id)
-  if (!elem) {
-    console.error("remove_child: element not found: " + comp_id)
-    return false
-  }
-  const child = elem.children[child_id]
+export function remove_child(comp, child_comp) {
+  const elem = get_element(comp)
+  const child = elem.children[child_comp.id]
   if (!child) {
-    console.error("remove_child: child not found: " + child_id)
-    return false
+    console.error("remove_child: child not found: " + child_comp.id)
+    return comp
   }
   elem.removeChild(child)
-  return true
+  return comp
 }
 
 // ------------------------------- STATE --------------------------------
 
 export function update_state(id, value) {
   ;(window.state_listener.get(id) || []).forEach((callback) => callback(value))
-  // ;[].forEach.call(document.getElementsByClassName(id), (elem) => {
-  //   if (elem.tagName === STATEFUL) {
-  //     const new_elem = get_stateful_component(elem.id)(value)
-  //     elem.replaceChildren(new_elem)
-  //     return
-  //   }
-  //   if (elem.tagName === STATE) {
-  //     elem.innerText = value
-  //     return
-  //   }
-  // })
   set_state(id, value)
 }
 

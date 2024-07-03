@@ -1,6 +1,6 @@
 import gleam/int
-import libs/attribute.{style}
-import libs/component.{type Component, add_attribute, remove_attribute}
+import libs/attribute.{add_attribute, remove_attribute, style}
+import libs/component.{type Component}
 
 pub type ComponentRect {
   ComponentRect(x: Int, y: Int, width: Int, height: Int)

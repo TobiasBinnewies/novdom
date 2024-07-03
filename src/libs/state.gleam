@@ -1,5 +1,3 @@
-import libs/component.{type Component, StateContainer, StatefulComponent}
-// import libs/render.{type HTMLElement, get_element}
 import libs/utils
 
 pub type State(a) {
@@ -37,19 +35,6 @@ pub fn on_change(state: State(a), callback: fn(a) -> Nil) -> State(a) {
   state
 }
 
-// pub fn stateful_component(
-//   state: State(a),
-//   render: fn(a) -> Component,
-// ) -> Component {
-//   let id = utils.unique_id()
-//   let render = fn(a) {
-//     let comp = render(a)
-//     get_element(comp)
-//   }
-//   add_stateful_component(id, render)
-//   StatefulComponent(id, state.id)
-// }
-
 @external(javascript, "../document_ffi.mjs", "get_state")
 fn get_state(key: String) -> a
 
@@ -58,9 +43,6 @@ fn set_state(key: String, value: a) -> Nil
 
 @external(javascript, "../document_ffi.mjs", "update_state")
 fn update_state(key: String, value: a) -> Nil
-
-// @external(javascript, "../document_ffi.mjs", "add_stateful_component")
-// fn add_stateful_component(id: String, render: fn(a) -> HTMLElement) -> Nil
 
 @external(javascript, "../document_ffi.mjs", "add_state_listener")
 fn add_state_listener(key: String, callback: fn(a) -> Nil) -> Nil

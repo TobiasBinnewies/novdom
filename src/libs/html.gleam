@@ -1,7 +1,5 @@
-import libs/attribute.{type Attribute}
-import libs/component.{
-  type Component, TextContainer, component, set_attributes, set_children,
-}
+import libs/attribute.{type Attribute, set_attributes}
+import libs/component.{type Component, component, set_children}
 
 const div_tag = "div"
 
@@ -19,49 +17,43 @@ pub fn div(
   attributes: List(Attribute),
   children: fn(Component) -> List(Component),
 ) -> Component {
-  component(div_tag)
+  component(div_tag, children)
   |> set_attributes(attributes)
-  |> fn(c) { c |> set_children(children(c)) }
 }
 
 pub fn span(
   attributes: List(Attribute),
   children: fn(Component) -> List(Component),
 ) -> Component {
-  component(span_tag)
+  component(span_tag, children)
   |> set_attributes(attributes)
-  |> fn(c) { c |> set_children(children(c)) }
 }
 
 // TODO: Add input (set attributes)
 // pub fn input(attributes: List(Attribute), children: fn(Component) -> List(Component)) -> Component {
 //   component(input)
-//   |> fn(c) { c |> set_children(children(c)) }
 // }
 
 pub fn h1(
   attributes: List(Attribute),
   children: fn(Component) -> List(Component),
 ) -> Component {
-  component(h1_tag)
+  component(h1_tag, children)
   |> set_attributes(attributes)
-  |> fn(c) { c |> set_children(children(c)) }
 }
 
 pub fn h2(
   attributes: List(Attribute),
   children: fn(Component) -> List(Component),
 ) -> Component {
-  component(h2_tag)
+  component(h2_tag, children)
   |> set_attributes(attributes)
-  |> fn(c) { c |> set_children(children(c)) }
 }
 
 pub fn h3(
   attributes: List(Attribute),
   children: fn(Component) -> List(Component),
 ) -> Component {
-  component(h3_tag)
+  component(h3_tag, children)
   |> set_attributes(attributes)
-  |> fn(c) { c |> set_children(children(c)) }
 }

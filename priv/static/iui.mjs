@@ -46,8 +46,8 @@ var List = class {
     return length2;
   }
 };
-function prepend(element2, tail) {
-  return new NonEmpty(element2, tail);
+function prepend(element, tail) {
+  return new NonEmpty(element, tail);
 }
 function toList(elements, tail) {
   return List.fromArray(elements, tail);
@@ -190,16 +190,6 @@ function structurallyCompatibleObjects(a, b) {
     return false;
   return a.constructor === b.constructor;
 }
-function makeError(variant, module, line, fn, message, extra) {
-  let error = new globalThis.Error(message);
-  error.gleam_error = variant;
-  error.module = module;
-  error.line = line;
-  error.fn = fn;
-  for (let k in extra)
-    error[k] = extra[k];
-  return error;
-}
 
 // build/dev/javascript/gleam_stdlib/gleam/option.mjs
 var Some = class extends CustomType {
@@ -229,33 +219,6 @@ function do_reverse(loop$remaining, loop$accumulator) {
 function reverse(xs) {
   return do_reverse(xs, toList([]));
 }
-function do_filter(loop$list, loop$fun, loop$acc) {
-  while (true) {
-    let list = loop$list;
-    let fun = loop$fun;
-    let acc = loop$acc;
-    if (list.hasLength(0)) {
-      return reverse(acc);
-    } else {
-      let x = list.head;
-      let xs = list.tail;
-      let new_acc = (() => {
-        let $ = fun(x);
-        if ($) {
-          return prepend(x, acc);
-        } else {
-          return acc;
-        }
-      })();
-      loop$list = xs;
-      loop$fun = fun;
-      loop$acc = new_acc;
-    }
-  }
-}
-function filter(list, predicate) {
-  return do_filter(list, predicate, toList([]));
-}
 function do_map(loop$list, loop$fun, loop$acc) {
   while (true) {
     let list = loop$list;
@@ -274,96 +237,6 @@ function do_map(loop$list, loop$fun, loop$acc) {
 }
 function map(list, fun) {
   return do_map(list, fun, toList([]));
-}
-function drop(loop$list, loop$n) {
-  while (true) {
-    let list = loop$list;
-    let n = loop$n;
-    let $ = n <= 0;
-    if ($) {
-      return list;
-    } else {
-      if (list.hasLength(0)) {
-        return toList([]);
-      } else {
-        let xs = list.tail;
-        loop$list = xs;
-        loop$n = n - 1;
-      }
-    }
-  }
-}
-function do_take(loop$list, loop$n, loop$acc) {
-  while (true) {
-    let list = loop$list;
-    let n = loop$n;
-    let acc = loop$acc;
-    let $ = n <= 0;
-    if ($) {
-      return reverse(acc);
-    } else {
-      if (list.hasLength(0)) {
-        return reverse(acc);
-      } else {
-        let x = list.head;
-        let xs = list.tail;
-        loop$list = xs;
-        loop$n = n - 1;
-        loop$acc = prepend(x, acc);
-      }
-    }
-  }
-}
-function take(list, n) {
-  return do_take(list, n, toList([]));
-}
-function do_append(loop$first, loop$second) {
-  while (true) {
-    let first = loop$first;
-    let second = loop$second;
-    if (first.hasLength(0)) {
-      return second;
-    } else {
-      let item = first.head;
-      let rest$1 = first.tail;
-      loop$first = rest$1;
-      loop$second = prepend(item, second);
-    }
-  }
-}
-function append(first, second) {
-  return do_append(reverse(first), second);
-}
-function reverse_and_prepend(loop$prefix, loop$suffix) {
-  while (true) {
-    let prefix = loop$prefix;
-    let suffix = loop$suffix;
-    if (prefix.hasLength(0)) {
-      return suffix;
-    } else {
-      let first$1 = prefix.head;
-      let rest$1 = prefix.tail;
-      loop$prefix = rest$1;
-      loop$suffix = prepend(first$1, suffix);
-    }
-  }
-}
-function do_concat(loop$lists, loop$acc) {
-  while (true) {
-    let lists = loop$lists;
-    let acc = loop$acc;
-    if (lists.hasLength(0)) {
-      return reverse(acc);
-    } else {
-      let list = lists.head;
-      let further_lists = lists.tail;
-      loop$lists = further_lists;
-      loop$acc = reverse_and_prepend(list, acc);
-    }
-  }
-}
-function flatten(lists) {
-  return do_concat(lists, toList([]));
 }
 function fold(loop$list, loop$initial, loop$fun) {
   while (true) {
@@ -1189,47 +1062,6 @@ function debug(term) {
   return term;
 }
 
-// build/dev/javascript/iui/libs/attribute.mjs
-function class$(value2) {
-  return ["class", value2];
-}
-function style(values) {
-  let res = fold(
-    values,
-    "",
-    (res2, _use1) => {
-      let key = _use1[0];
-      let value2 = _use1[1];
-      if (value2 === "") {
-        return res2 + key + ";";
-      } else {
-        return res2 + key + ":" + value2 + ";";
-      }
-    }
-  );
-  return ["style", res];
-}
-function hidden() {
-  return ["hidden", "hidden"];
-}
-
-// build/dev/javascript/iui/libs/listener.mjs
-function onclick(callback) {
-  return ["click", callback];
-}
-function onemouseover(callback) {
-  return ["mouseover", callback];
-}
-function onmouseout(callback) {
-  return ["mouseout", callback];
-}
-function onmousedown(callback) {
-  return ["mousedown", callback];
-}
-function onmouseup(callback) {
-  return ["mouseup", callback];
-}
-
 // build/dev/javascript/iui/document_ffi.mjs
 var TEXT = "_TEXT_";
 function init() {
@@ -1237,67 +1069,63 @@ function init() {
   window.stateful_component_map = /* @__PURE__ */ new Map();
   window.state_listener = /* @__PURE__ */ new Map();
 }
-function add_to_viewport(id, elem) {
-  const viewport = document.querySelector(id);
+function add_to_unrendered(elem) {
+  document.getElementById("_unrendered_").appendChild(elem);
+}
+function add_to_viewport(comp, id) {
+  const elem = get_element(comp);
+  const viewport = document.getElementById(id);
   viewport.appendChild(elem);
 }
 function clear_viewport(id) {
-  const viewport = document.querySelector(id);
+  const viewport = document.getElementById(id);
   viewport.replaceChildren();
 }
-function create_text_element(id, attributes, value2) {
-  const elem = document.createElement(TEXT);
-  elem.innerText = value2;
-  attributes.toArray().forEach((attr) => elem.setAttribute(attr[0], attr[1]));
-  elem.setAttribute("id", id);
-  return elem;
-}
-function create_element(id, tag, attributes, children, listeners) {
-  const existing = document.getElementById(id);
-  if (existing)
-    return existing;
-  const elem = document.createElement(tag);
-  elem.setAttribute("id", id);
-  attributes.toArray().forEach((attr) => elem.setAttribute(attr[0], attr[1]));
-  children.toArray().forEach((child) => elem.appendChild(child));
-  listeners.toArray().forEach((listener) => elem.addEventListener(listener[0], listener[1]));
-  return elem;
-}
-function set_attributes(comp_id, attributes) {
-  const elem = document.getElementById(comp_id);
-  if (!elem) {
-    console.error("set_attributes: element not found: " + comp_id);
-    return false;
+function get_element(comp) {
+  if (comp.id === TEXT) {
+    return comp.tag;
   }
+  const existing = document.getElementById(comp.id);
+  if (existing) {
+    return existing;
+  }
+  const elem = document.createElement(comp.tag);
+  elem.setAttribute("id", comp.id);
+  add_to_unrendered(elem);
+  return elem;
+}
+function create_copy(comp, new_id) {
+  const elem = get_element(comp);
+  const copy2 = elem.cloneNode(true);
+  copy2.setAttribute("id", new_id);
+  add_to_unrendered(copy2);
+  return { id: new_id, tag: comp.tag };
+}
+function set_attributes(comp, attributes) {
+  const elem = get_element(comp);
   const keys = Object.keys(elem.attributes);
   keys.forEach((key) => {
     if (elem.attributes[key].name !== "id") {
       elem.removeAttribute(elem.attributes[key].name);
     }
   });
-  attributes.toArray().forEach((attr) => add_attribute(comp_id, attr));
-  return true;
+  attributes.toArray().forEach((attr) => add_attribute(comp, attr));
+  return comp;
 }
-function add_attribute(comp_id, attribute) {
-  const elem = document.getElementById(comp_id);
-  if (!elem) {
-    console.error("add_attribute: element not found: " + comp_id);
-    return false;
-  }
-  return handle_attribute(elem, attribute[0], attribute[1], false);
+function add_attribute(comp, attribute) {
+  const elem = get_element(comp);
+  handle_attribute(elem, attribute[0], attribute[1], false);
+  return comp;
 }
-function remove_attribute(comp_id, attribute) {
-  const elem = document.getElementById(comp_id);
-  if (!elem) {
-    console.error("remove_attribute: element not found: " + comp_id);
-    return false;
-  }
-  return handle_attribute(elem, attribute[0], attribute[1], true);
+function remove_attribute(comp, attribute) {
+  const elem = get_element(comp);
+  handle_attribute(elem, attribute[0], attribute[1], true);
+  return comp;
 }
 function handle_attribute(elem, key, value2, remove) {
   if (value2 === "" || value2.length === 0) {
     elem.removeAttribute(key);
-    return true;
+    return;
   }
   switch (key) {
     case "class":
@@ -1308,7 +1136,7 @@ function handle_attribute(elem, key, value2, remove) {
         }
         elem.classList.add(cls);
       });
-      return true;
+      return;
     case "style":
       value2.split(";").forEach((style2) => {
         if (!style2.includes(":")) {
@@ -1322,63 +1150,49 @@ function handle_attribute(elem, key, value2, remove) {
         }
         elem.style.setProperty(split3[0], split3[1].trim());
       });
-      return true;
+      return;
     case "hidden":
       if (remove) {
         elem.hidden = false;
-        return true;
+        return;
       }
       elem.hidden = true;
-      return true;
+      return;
     default:
       console.error("add_attribute: unknown attribute key / not implemented yet: " + key);
-      return false;
+      return;
   }
 }
-function add_listeners(comp_id, listeners) {
-  const elem = document.getElementById(comp_id);
-  if (!elem) {
-    console.error("add_listeners: element not found: " + comp_id);
-    return false;
-  }
-  listeners.toArray().forEach((listener) => elem.addEventListener(listener[0], listener[1]));
-  return true;
+function add_listener(comp, listener) {
+  const elem = get_element(comp);
+  elem.addEventListener(listener[0], listener[1]);
+  return comp;
 }
-function set_children(comp_id, children) {
-  const elem = document.getElementById(comp_id);
-  if (!elem) {
-    console.error("set_children: element not found: " + comp_id);
-    return false;
-  }
-  elem.replaceChildren(children.toArray());
-  return true;
+function set_children(comp, children_comp) {
+  const elem = get_element(comp);
+  const children = children_comp.toArray().map(get_element);
+  elem.replaceChildren(...children);
+  return comp;
 }
-function insert_child_at(comp_id, child, at) {
-  const elem = document.getElementById(comp_id);
-  if (!elem) {
-    console.error("insert_child_at: element not found: " + comp_id);
-    return false;
-  }
+function insert_child_at(comp, child_comp, at) {
+  const elem = get_element(comp);
+  const child = get_element(child_comp);
   if (elem.children.length <= at) {
     elem.appendChild(child);
-    return true;
+    return comp;
   }
   elem.insertBefore(child, elem.children[at]);
-  return true;
+  return comp;
 }
-function remove_child(comp_id, child_id) {
-  const elem = document.getElementById(comp_id);
-  if (!elem) {
-    console.error("remove_child: element not found: " + comp_id);
-    return false;
-  }
-  const child = elem.children[child_id];
+function remove_child(comp, child_comp) {
+  const elem = get_element(comp);
+  const child = elem.children[child_comp.id];
   if (!child) {
-    console.error("remove_child: child not found: " + child_id);
-    return false;
+    console.error("remove_child: child not found: " + child_comp.id);
+    return comp;
   }
   elem.removeChild(child);
-  return true;
+  return comp;
 }
 function update_state(id, value2) {
   ;
@@ -1403,256 +1217,55 @@ function create_id() {
 
 // build/dev/javascript/iui/libs/component.mjs
 var Component = class extends CustomType {
-  constructor(id, tag, attributes, children, listeners) {
+  constructor(id, tag) {
     super();
     this.id = id;
     this.tag = tag;
-    this.attributes = attributes;
-    this.children = children;
-    this.listeners = listeners;
   }
 };
-var TextContainer = class extends CustomType {
-  constructor(id, attributes, value2) {
-    super();
-    this.id = id;
-    this.attributes = attributes;
-    this.value = value2;
-  }
-};
-var StateContainer = class extends CustomType {
-  constructor(id, state_id) {
-    super();
-    this.id = id;
-    this.state_id = state_id;
-  }
-};
-var StatefulComponent = class extends CustomType {
-  constructor(id, state_id) {
-    super();
-    this.id = id;
-    this.state_id = state_id;
-  }
-};
+function empty_component(tag) {
+  let id = create_id();
+  let comp = new Component(id, tag);
+  get_element(new Component(id, tag));
+  return comp;
+}
 function copy(comp) {
   let id = create_id();
-  if (comp instanceof Component) {
-    let tag = comp.tag;
-    let attrs = comp.attributes;
-    let children = comp.children;
-    let listeners = comp.listeners;
-    return new Component(id, tag, attrs, children, listeners);
-  } else if (comp instanceof TextContainer) {
-    let attrs = comp.attributes;
-    let value2 = comp.value;
-    return new TextContainer(id, attrs, value2);
-  } else if (comp instanceof StateContainer) {
-    let state_id = comp.state_id;
-    return new StateContainer(id, state_id);
-  } else {
-    let state_id = comp.state_id;
-    return new StatefulComponent(id, state_id);
-  }
+  return create_copy(comp, id);
 }
-function component(tag) {
-  let id = create_id();
-  return new Component(id, tag, toList([]), toList([]), toList([]));
+function component(tag, children) {
+  let comp = empty_component(tag);
+  let children$1 = children(comp);
+  set_children(comp, children$1);
+  return comp;
 }
-function set_attributes2(component2, attrs) {
-  if (component2 instanceof Component) {
-    let id = component2.id;
-    let tag = component2.tag;
-    let children = component2.children;
-    let listener = component2.listeners;
-    set_attributes(id, attrs);
-    return new Component(id, tag, attrs, children, listener);
-  } else {
-    throw makeError(
-      "panic",
-      "libs/component",
-      62,
-      "set_attributes",
-      "Only Component can have attributes",
-      {}
-    );
-  }
+var text_tag = "_TEXT_";
+function text(value2) {
+  return new Component(text_tag, value2);
 }
-function add_attribute2(component2, attr) {
-  if (component2 instanceof Component) {
-    let id = component2.id;
-    let tag = component2.tag;
-    let current_attrs = component2.attributes;
-    let children = component2.children;
-    let listener = component2.listeners;
-    add_attribute(id, attr);
-    return new Component(
-      id,
-      tag,
-      append(current_attrs, toList([attr])),
-      children,
-      listener
-    );
-  } else {
-    throw makeError(
-      "panic",
-      "libs/component",
-      72,
-      "add_attribute",
-      "Only Component can have attributes",
-      {}
-    );
-  }
+
+// build/dev/javascript/iui/libs/attribute.mjs
+function class$(value2) {
+  return ["class", value2];
 }
-function remove_attribute2(component2, attr) {
-  if (component2 instanceof Component) {
-    let id = component2.id;
-    let tag = component2.tag;
-    let current_attrs = component2.attributes;
-    let children = component2.children;
-    let listener = component2.listeners;
-    remove_attribute(id, attr);
-    return new Component(
-      id,
-      tag,
-      filter(current_attrs, (a) => {
-        return !isEqual(a, attr);
-      }),
-      children,
-      listener
-    );
-  } else {
-    throw makeError(
-      "panic",
-      "libs/component",
-      89,
-      "remove_attribute",
-      "Only Component can have attributes",
-      {}
-    );
-  }
+function style(values) {
+  let res = fold(
+    values,
+    "",
+    (res2, _use1) => {
+      let key = _use1[0];
+      let value2 = _use1[1];
+      if (value2 === "") {
+        return res2 + key + ";";
+      } else {
+        return res2 + key + ":" + value2 + ";";
+      }
+    }
+  );
+  return ["style", res];
 }
-function add_listener(component2, listener) {
-  if (component2 instanceof Component) {
-    let id = component2.id;
-    let tag = component2.tag;
-    let attributes = component2.attributes;
-    let children = component2.children;
-    let old_listener = component2.listeners;
-    add_listeners(id, toList([listener]));
-    return new Component(
-      id,
-      tag,
-      attributes,
-      children,
-      prepend(listener, old_listener)
-    );
-  } else {
-    throw makeError(
-      "panic",
-      "libs/component",
-      99,
-      "add_listener",
-      "Only Component can have listeners",
-      {}
-    );
-  }
-}
-function remove_child2(component2, child) {
-  remove_child(component2.id, child.id);
-  return void 0;
-}
-function text(attributes, value2) {
-  let id = create_id();
-  return new TextContainer(id, attributes, value2);
-}
-function element(component2) {
-  if (component2 instanceof Component) {
-    let id = component2.id;
-    let el = component2.tag;
-    let attributes = component2.attributes;
-    let children = component2.children;
-    let listener = component2.listeners;
-    let children$1 = map(children, element);
-    let elem = create_element(id, el, attributes, children$1, listener);
-    return elem;
-  } else if (component2 instanceof TextContainer) {
-    let id = component2.id;
-    let attributes = component2.attributes;
-    let value2 = component2.value;
-    return create_text_element(id, attributes, value2);
-  } else if (component2 instanceof StateContainer) {
-    let id = component2.id;
-    let state_id = component2.state_id;
-    throw makeError(
-      "panic",
-      "libs/component",
-      174,
-      "element",
-      "Do not use this!",
-      {}
-    );
-  } else {
-    let id = component2.id;
-    let state_id = component2.state_id;
-    throw makeError(
-      "panic",
-      "libs/component",
-      178,
-      "element",
-      "Do not use this!",
-      {}
-    );
-  }
-}
-function set_children2(component2, children) {
-  if (component2 instanceof Component) {
-    let id = component2.id;
-    let tag = component2.tag;
-    let attributes = component2.attributes;
-    let listener = component2.listeners;
-    set_children(id, map(children, element));
-    return new Component(id, tag, attributes, children, listener);
-  } else {
-    throw makeError(
-      "panic",
-      "libs/component",
-      112,
-      "set_children",
-      "Only Component can have children",
-      {}
-    );
-  }
-}
-function insert_child_at2(component2, child, at) {
-  if (component2 instanceof Component) {
-    let id = component2.id;
-    let tag = component2.tag;
-    let attributes = component2.attributes;
-    let children = component2.children;
-    let listener = component2.listeners;
-    insert_child_at(id, element(child), at);
-    let new$2 = flatten(
-      toList([
-        take(children, at),
-        toList([child]),
-        drop(children, at)
-      ])
-    );
-    return new Component(id, tag, attributes, new$2, listener);
-  } else {
-    throw makeError(
-      "panic",
-      "libs/component",
-      128,
-      "insert_child_at",
-      "Only Component can have children",
-      {}
-    );
-  }
-}
-function start(component2) {
-  let elem = element(component2);
-  return add_to_viewport("#_app_", elem);
+function hidden() {
+  return ["hidden", "hidden"];
 }
 
 // build/dev/javascript/iui/libs/container.mjs
@@ -1726,8 +1339,8 @@ function stack(direction, align, spacing, scrolling, children) {
       return ["overflow", "hidden"];
     }
   })();
-  let _pipe = component(stack_tag);
-  let _pipe$1 = set_attributes2(
+  let _pipe = component(stack_tag, children);
+  return set_attributes(
     _pipe,
     toList([
       style(
@@ -1743,10 +1356,6 @@ function stack(direction, align, spacing, scrolling, children) {
       )
     ])
   );
-  return ((c) => {
-    let _pipe$2 = c;
-    return set_children2(_pipe$2, children(c));
-  })(_pipe$1);
 }
 function vstack(alignment, spacing, children) {
   let align = (() => {
@@ -1785,6 +1394,53 @@ function hstack(alignment, spacing, children) {
   );
 }
 
+// build/dev/javascript/iui/libs/listener.mjs
+function onclick(component2, callback) {
+  let _pipe = component2;
+  return add_listener(
+    _pipe,
+    ["click", (_capture) => {
+      return callback(component2, _capture);
+    }]
+  );
+}
+function onemouseover(component2, callback) {
+  let _pipe = component2;
+  return add_listener(
+    _pipe,
+    ["mouseover", (_capture) => {
+      return callback(component2, _capture);
+    }]
+  );
+}
+function onmouseout(component2, callback) {
+  let _pipe = component2;
+  return add_listener(
+    _pipe,
+    ["mouseout", (_capture) => {
+      return callback(component2, _capture);
+    }]
+  );
+}
+function onmousedown(component2, callback) {
+  let _pipe = component2;
+  return add_listener(
+    _pipe,
+    ["mousedown", (_capture) => {
+      return callback(component2, _capture);
+    }]
+  );
+}
+function onmouseup(component2, callback) {
+  let _pipe = component2;
+  return add_listener(
+    _pipe,
+    ["mouseup", (_capture) => {
+      return callback(component2, _capture);
+    }]
+  );
+}
+
 // build/dev/javascript/iui/libs/state.mjs
 var State = class extends CustomType {
   constructor(id) {
@@ -1798,13 +1454,13 @@ function from_id(id) {
 function value(state) {
   return get_state(state.id);
 }
-function create(init4) {
+function create(init3) {
   let id = create_id();
-  set_state(id, init4);
+  set_state(id, init3);
   return new State(id);
 }
-function create_with_id(id, init4) {
-  set_state(id, init4);
+function create_with_id(id, init3) {
+  set_state(id, init3);
   return new State(id);
 }
 function update2(state, new$2) {
@@ -1836,8 +1492,8 @@ var drag_event_id = "_DRAGGABLE_";
 function ondrag(comp, preview, value2, on_drag, on_cancel, on_drop) {
   let drag_event = from_id(drag_event_id);
   let preview$1 = (() => {
-    let _pipe2 = component(drag_event_id);
-    let _pipe$1 = add_attribute2(
+    let _pipe2 = empty_component(drag_event_id);
+    let _pipe$1 = add_attribute(
       _pipe2,
       style(
         toList([
@@ -1849,33 +1505,37 @@ function ondrag(comp, preview, value2, on_drag, on_cancel, on_drop) {
         ])
       )
     );
-    return set_children2(_pipe$1, toList([preview]));
+    return set_children(_pipe$1, toList([preview]));
   })();
   let _pipe = comp;
-  return add_listener(
+  return onmousedown(
     _pipe,
-    onmousedown(
-      (_) => {
-        let event = new DragEvent(
-          value2,
-          comp,
-          preview$1,
-          on_drop,
-          on_cancel,
-          false
-        );
-        update2(drag_event, new Some(event));
-        add_to_viewport("#_drag_", element(preview$1));
-        return on_drag(event);
-      }
-    )
+    (_, _1) => {
+      let event = new DragEvent(
+        value2,
+        comp,
+        preview$1,
+        on_drop,
+        on_cancel,
+        false
+      );
+      update2(drag_event, new Some(event));
+      add_to_viewport(
+        (() => {
+          let _pipe$1 = preview$1;
+          return copy(_pipe$1);
+        })(),
+        "_drag_"
+      );
+      return on_drag(event);
+    }
   );
 }
 function cleanup() {
   let state = from_id(drag_event_id);
   return () => {
     update2(state, new None());
-    return clear_viewport("#_drag_");
+    return clear_viewport("_drag_");
   };
 }
 function init2() {
@@ -1907,103 +1567,95 @@ function ondrop(comp, on_drag, on_hover, on_drop) {
     }
   );
   let _pipe$1 = comp;
-  let _pipe$2 = add_listener(
+  let _pipe$2 = onemouseover(
     _pipe$1,
-    onemouseover(
-      (_) => {
-        let $ = value(drag_event);
-        if ($ instanceof Some && $[0] instanceof DragEvent) {
-          let value2 = $[0].value;
-          let source = $[0].source;
-          let preview = $[0].preview;
-          let cleanup$1 = $[0].drop;
-          let cancel = $[0].cancel;
-          let droppable = $[0].droppable;
-          let event = new DragEvent(
-            value2,
-            source,
-            preview,
-            cleanup$1,
-            cancel,
-            droppable
-          );
-          return update2(
-            drag_event,
-            new Some(
-              new DragEvent(
-                value2,
-                source,
-                preview,
-                cleanup$1,
-                cancel,
-                on_hover(event)
-              )
+    (_, _1) => {
+      let $ = value(drag_event);
+      if ($ instanceof Some && $[0] instanceof DragEvent) {
+        let value2 = $[0].value;
+        let source = $[0].source;
+        let preview = $[0].preview;
+        let cleanup$1 = $[0].drop;
+        let cancel = $[0].cancel;
+        let droppable = $[0].droppable;
+        let event = new DragEvent(
+          value2,
+          source,
+          preview,
+          cleanup$1,
+          cancel,
+          droppable
+        );
+        return update2(
+          drag_event,
+          new Some(
+            new DragEvent(
+              value2,
+              source,
+              preview,
+              cleanup$1,
+              cancel,
+              on_hover(event)
             )
-          );
-        } else {
-          return void 0;
-        }
+          )
+        );
+      } else {
+        return void 0;
       }
-    )
+    }
   );
-  let _pipe$3 = add_listener(
+  let _pipe$3 = onmouseout(
     _pipe$2,
-    onmouseout(
-      (_) => {
-        let $ = value(drag_event);
-        if ($ instanceof Some) {
-          let event = $[0];
-          return update2(
-            drag_event,
-            new Some(
-              new DragEvent(
-                event.value,
-                event.source,
-                event.preview,
-                event.drop,
-                event.cancel,
-                false
-              )
+    (_, _1) => {
+      let $ = value(drag_event);
+      if ($ instanceof Some) {
+        let event = $[0];
+        return update2(
+          drag_event,
+          new Some(
+            new DragEvent(
+              event.value,
+              event.source,
+              event.preview,
+              event.drop,
+              event.cancel,
+              false
             )
-          );
-        } else {
-          return void 0;
-        }
+          )
+        );
+      } else {
+        return void 0;
       }
-    )
+    }
   );
-  return add_listener(
+  return onmouseup(
     _pipe$3,
-    onmouseup(
-      (_) => {
-        let $ = value(drag_event);
-        if ($ instanceof Some && $[0].droppable) {
-          let event = $[0];
-          event.drop(event);
-          return on_drop(event, cleanup());
-        } else {
-          return void 0;
-        }
+    (_, _1) => {
+      let $ = value(drag_event);
+      if ($ instanceof Some && $[0].droppable) {
+        let event = $[0];
+        event.drop(event);
+        return on_drop(event, cleanup());
+      } else {
+        return void 0;
       }
-    )
+    }
   );
 }
 
 // build/dev/javascript/iui/libs/framework.mjs
-function init3() {
+function start(component2) {
   init();
-  return init2();
+  init2();
+  let _pipe = component2();
+  return add_to_viewport(_pipe, "_app_");
 }
 
 // build/dev/javascript/iui/libs/html.mjs
 var div_tag = "div";
 function div(attributes, children) {
-  let _pipe = component(div_tag);
-  let _pipe$1 = set_attributes2(_pipe, attributes);
-  return ((c) => {
-    let _pipe$2 = c;
-    return set_children2(_pipe$2, children(c));
-  })(_pipe$1);
+  let _pipe = component(div_tag, children);
+  return set_attributes(_pipe, attributes);
 }
 
 // build/dev/javascript/iui/iui.mjs
@@ -2018,17 +1670,18 @@ function add_drag(comp, value2, parent) {
     value2,
     (e) => {
       let _pipe$1 = e.source;
-      add_attribute2(_pipe$1, hidden());
+      add_attribute(_pipe$1, hidden());
       return void 0;
     },
     (e, cleanup2) => {
       let _pipe$1 = e.source;
-      remove_attribute2(_pipe$1, hidden());
+      remove_attribute(_pipe$1, hidden());
       return cleanup2();
     },
     (e) => {
       debug("REMOVING CHILD");
-      return remove_child2(parent, e.source);
+      remove_child(parent, e.source);
+      return void 0;
     }
   );
 }
@@ -2047,30 +1700,30 @@ function add_drop(comp, parent) {
         let _pipe$1 = div(
           toList([class$("p-5 bg-red-100")]),
           (div2) => {
-            return toList([text(toList([class$("select-none")]), e.value)]);
+            return toList([text(e.value)]);
           }
         );
         let _pipe$2 = add_drag(_pipe$1, e.value, parent);
         return add_drop(_pipe$2, parent);
       })();
-      insert_child_at2(parent, new$2, 0);
+      insert_child_at(parent, new$2, 0);
       return cleanup2();
     }
   );
 }
 function panel1(state) {
   let letters = value(state);
-  return hstack(
-    new HCenter(),
+  return vstack(
+    new VCenter(),
     new EvenSpacing(),
     (hstack2) => {
       return map(
         letters,
         (letter) => {
           let comp = div(
-            toList([class$("p-5 bg-blue-100")]),
+            toList([class$("p-5 bg-blue-100 select-none")]),
             (div2) => {
-              return toList([text(toList([class$("select-none")]), letter)]);
+              return toList([text(letter)]);
             }
           );
           let _pipe = comp;
@@ -2091,9 +1744,9 @@ function panel2(state) {
         letters,
         (letter) => {
           let _pipe = div(
-            toList([class$("p-5 bg-green-100")]),
+            toList([class$("p-5 bg-green-100 select-none")]),
             (div2) => {
-              return toList([text(toList([class$("select-none")]), letter)]);
+              return toList([text(letter)]);
             }
           );
           let _pipe$1 = add_drag(_pipe, letter, hstack2);
@@ -2104,53 +1757,53 @@ function panel2(state) {
   );
 }
 function main() {
-  init3();
-  let state1 = create(toList(["A", "B", "C"]));
-  let state2 = create(toList(["D", "E"]));
-  let component2 = vstack(
-    new VCenter(),
-    new EvenSpacing(),
-    (vstack2) => {
-      return toList([
-        panel1(state1),
-        panel2(state2),
-        (() => {
-          let _pipe = div(
-            toList([class$("p-5 bg-blue-100")]),
-            (div2) => {
-              return toList([text(toList([class$("select-none")]), "Click")]);
-            }
-          );
-          return add_listener(
-            _pipe,
-            onclick(
-              (_) => {
-                let $ = value(state1);
-                if ($.atLeastLength(1) && $.head === "A") {
-                  update2(state1, toList(["B"]));
-                  let _pipe$1 = vstack2;
-                  add_attribute2(
-                    _pipe$1,
-                    style(toList([["background-color", "red"]]))
-                  );
-                  return void 0;
-                } else {
-                  update2(state1, toList(["A", "B", "C"]));
-                  let _pipe$1 = vstack2;
-                  remove_attribute2(
-                    _pipe$1,
-                    style(toList([["background", ""]]))
-                  );
-                  return void 0;
+  return start(
+    () => {
+      let state1 = create(toList(["A", "B", "C"]));
+      let state2 = create(toList(["D", "E"]));
+      return vstack(
+        new VCenter(),
+        new EvenSpacing(),
+        (vstack2) => {
+          return toList([
+            panel1(state1),
+            panel2(state2),
+            (() => {
+              let _pipe = div(
+                toList([class$("p-5 bg-blue-100 select-none")]),
+                (div2) => {
+                  return toList([text("Click")]);
                 }
-              }
-            )
-          );
-        })()
-      ]);
+              );
+              return onclick(
+                _pipe,
+                (comp, _) => {
+                  let $ = value(state1);
+                  if ($.atLeastLength(1) && $.head === "A") {
+                    update2(state1, toList(["B"]));
+                    let _pipe$1 = comp;
+                    add_attribute(
+                      _pipe$1,
+                      style(toList([["background-color", "red"]]))
+                    );
+                    return void 0;
+                  } else {
+                    update2(state1, toList(["A", "B", "C"]));
+                    let _pipe$1 = comp;
+                    remove_attribute(
+                      _pipe$1,
+                      style(toList([["background", ""]]))
+                    );
+                    return void 0;
+                  }
+                }
+              );
+            })()
+          ]);
+        }
+      );
     }
   );
-  return start(component2);
 }
 
 // build/.lustre/entry.mjs

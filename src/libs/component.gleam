@@ -1,187 +1,68 @@
-import gleam/list
-import libs/attribute.{type Attribute}
-import libs/listener.{type Listener}
-import libs/render.{type HTMLElement}
 import libs/utils
+
+const text_tag = "_TEXT_"
 
 pub type ComponentId =
   String
 
-pub type Component {
-  Component(
-    id: ComponentId,
-    tag: String,
-    attributes: List(Attribute),
-    children: List(Component),
-    listeners: List(Listener),
-  )
-  TextContainer(id: ComponentId, attributes: List(Attribute), value: String)
-  StateContainer(id: ComponentId, state_id: String)
-  StatefulComponent(id: ComponentId, state_id: String)
+pub opaque type Component {
+  Component(id: ComponentId, tag: String)
+  // TextContainer(id: ComponentId, attributes: List(Attribute), value: String)
 }
 
-pub fn create_component(
+pub fn empty_component(tag: String) -> Component {
+  let id = utils.unique_id()
+  let comp = Component(id, tag)
+  create_element(Component(id, tag))
+  comp
+}
+
+pub fn component(
   tag: String,
-  attrs: List(Attribute),
+  // attrs: List(Attribute),
   children: fn(Component) -> List(Component),
 ) -> Component {
-  let id = utils.unique_id()
-  let comp = Component(id, tag, attrs, [], [])
-  Component(id, tag, attrs, children(comp), [])
+  let comp = empty_component(tag)
+  let children = children(comp)
+  set_children(comp, children)
+  comp
+}
+
+pub fn text(value) -> Component {
+  Component(text_tag, value)
 }
 
 pub fn copy(comp: Component) -> Component {
   let id = utils.unique_id()
-  case comp {
-    Component(_, tag, attrs, children, listeners) -> {
-      Component(id, tag, attrs, children, listeners)
-    }
-    TextContainer(_, attrs, value) -> {
-      TextContainer(id, attrs, value)
-    }
-    StateContainer(_, state_id) -> {
-      StateContainer(id, state_id)
-    }
-    StatefulComponent(_, state_id) -> {
-      StatefulComponent(id, state_id)
-    }
-  }
+  create_copy(comp, id)
 }
 
-pub fn component(tag: String) -> Component {
-  let id = utils.unique_id()
-  Component(id, tag, [], [], [])
-}
+@external(javascript, "../document_ffi.mjs", "get_element")
+fn create_element(
+  comp: Component,
+  // attributes: List(Attribute),
+  // children: List(HTMLElement),
+  // listener: List(Listener),
+) -> Nil
 
-pub fn set_attributes(component: Component, attrs: List(Attribute)) -> Component {
-  case component {
-    Component(id, tag, _, children, listener) -> {
-      render.set_attributes(id, attrs)
-      Component(id, tag, attrs, children, listener)
-    }
-    _ -> panic as "Only Component can have attributes"
-  }
-}
+@external(javascript, "../document_ffi.mjs", "create_copy")
+fn create_copy(comp: Component, id: String) -> Component
 
-pub fn add_attribute(component: Component, attr: Attribute) -> Component {
-  case component {
-    Component(id, tag, current_attrs, children, listener) -> {
-      render.add_attribute(id, attr)
-      Component(id, tag, list.append(current_attrs, [attr]), children, listener)
-    }
-    _ -> panic as "Only Component can have attributes"
-  }
-}
+@external(javascript, "../document_ffi.mjs", "set_children")
+pub fn set_children(comp: Component, children: List(Component)) -> Component
 
-/// Does not work for blueprints
-pub fn remove_attribute(component: Component, attr: Attribute) -> Component {
-  case component {
-    Component(id, tag, current_attrs, children, listener) -> {
-      render.remove_attribute(id, attr)
-      Component(
-        id,
-        tag,
-        list.filter(current_attrs, fn(a) { a != attr }),
-        children,
-        listener,
-      )
-    }
-    _ -> panic as "Only Component can have attributes"
-  }
-}
+@external(javascript, "../document_ffi.mjs", "insert_child_at")
+pub fn insert_child_at(comp: Component, child: Component, at: Int) -> Component
 
-pub fn add_listener(component: Component, listener: Listener) -> Component {
-  case component {
-    Component(id, tag, attributes, children, old_listener) -> {
-      render.add_listeners(id, [listener])
-      Component(id, tag, attributes, children, [listener, ..old_listener])
-    }
-    _ -> panic as "Only Component can have listeners"
-  }
-}
-
-pub fn set_children(
-  component: Component,
-  children: List(Component),
-) -> Component {
-  case component {
-    Component(id, tag, attributes, _, listener) -> {
-      render.set_children(id, list.map(children, element))
-      Component(id, tag, attributes, children, listener)
-    }
-    _ -> panic as "Only Component can have children"
-  }
-}
-
-pub fn insert_child_at(
-  component: Component,
-  child: Component,
-  at: Int,
-) -> Component {
-  case component {
-    Component(id, tag, attributes, children, listener) -> {
-      render.insert_child_at(id, element(child), at)
-      let new =
-        list.flatten([list.take(children, at), [child], list.drop(children, at)])
-      Component(id, tag, attributes, new, listener)
-    }
-    _ -> panic as "Only Component can have children"
-  }
-}
-
+@external(javascript, "../document_ffi.mjs", "insert_child_before")
 pub fn insert_child_before(
-  component: Component,
+  comp: Component,
   child: Component,
-  before: Component,
-) -> Nil {
-  render.insert_child_before(component.id, element(child), before.id)
-  Nil
-}
+  before_id: String,
+) -> Component
 
-pub fn remove_child_at(component: Component, at: Int) -> Component {
-  case component {
-    Component(id, tag, attributes, children, listener) -> {
-      render.remove_child_at(id, at)
-      let new =
-        list.flatten([list.take(children, at), list.drop(children, at + 1)])
-      Component(id, tag, attributes, new, listener)
-    }
-    _ -> panic as "Only Component can have children"
-  }
-}
+@external(javascript, "../document_ffi.mjs", "remove_child_at")
+pub fn remove_child_at(comp: Component, at: Int) -> Component
 
-pub fn remove_child(component: Component, child: Component) -> Nil {
-  render.remove_child(component.id, child.id)
-  Nil
-}
-
-pub fn text(attributes: List(Attribute), value: String) -> Component {
-  let id = utils.unique_id()
-  TextContainer(id, attributes, value)
-}
-
-pub fn element(component: Component) -> HTMLElement {
-  case component {
-    Component(id, el, attributes, children, listener) -> {
-      let children = list.map(children, element)
-      let elem = render.create_element(id, el, attributes, children, listener)
-      elem
-    }
-    TextContainer(id, attributes, value) -> {
-      render.create_text_element(id, attributes, value)
-    }
-    StateContainer(id, state_id) -> {
-      panic as "Do not use this!"
-      // create_state_element(id, state_id)
-    }
-    StatefulComponent(id, state_id) -> {
-      panic as "Do not use this!"
-      // create_stateful_element(id, state_id)
-    }
-  }
-}
-
-pub fn start(component: Component) {
-  let elem = element(component)
-  render.add_to_viewport("#_app_", elem)
-}
+@external(javascript, "../document_ffi.mjs", "remove_child")
+pub fn remove_child(comp: Component, child: Component) -> Component
