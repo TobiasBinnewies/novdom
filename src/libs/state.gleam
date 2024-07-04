@@ -30,10 +30,18 @@ pub fn update(state: State(a), new: a) -> Nil {
   update_state(state.id, new)
 }
 
-pub fn on_change(state: State(a), callback: fn(a) -> Nil) -> State(a) {
+pub fn listen(state: State(a), callback: fn(a) -> Nil) -> Nil {
   add_state_listener(state.id, callback)
-  state
 }
+
+// pub fn render(state: State(a), callback: fn(a) -> b) -> b {
+//   let cb = fn(value) {
+//     callback(value)
+//     Nil
+//   }
+//   add_state_listener(state.id, cb)
+//   callback(value(state))
+// }
 
 @external(javascript, "../document_ffi.mjs", "get_state")
 fn get_state(key: String) -> a

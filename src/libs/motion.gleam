@@ -76,7 +76,7 @@ pub fn ondrop(
   let drag_event: State(Option(DragEvent(a))) = state.from_id(drag_event_id)
 
   drag_event
-  |> state.on_change(fn(event) {
+  |> state.listen(fn(event) {
     case event {
       Some(event) if !event.droppable -> on_drag(event)
       _ -> Nil
