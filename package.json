@@ -1,18 +1,9 @@
 {
-  "name": "iui-tauri",
+  "name": "novdom",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "tauri": "tauri"
-  },
   "devDependencies": {
-    "@tauri-apps/cli": "^1"
-  },
-  "dependencies": {
     "jsdom": "^24.1.0"
   }
 }

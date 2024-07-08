@@ -1,6 +1,7 @@
-import {} from "./globals.mjs"
+// import {} from "./globals.mjs"
 
 const TEXT = "_TEXT_"
+const HTML = "_HTML_"
 
 // ------------------------------- VIEWPORT --------------------------------
 
@@ -27,17 +28,14 @@ export function clear_viewport(id) {
 
 // ------------------------------- ELEMENT --------------------------------
 
-export function create_text_element(id, attributes, value) {
-  const elem = document.createElement(TEXT)
-  elem.innerText = value
-  attributes.toArray().forEach((attr) => elem.setAttribute(attr[0], attr[1]))
-  elem.setAttribute("id", id)
-  return elem
-}
-
 export function get_element(comp) {
   if (comp.id === TEXT) {
     return comp.tag
+  }
+  if (comp.id === HTML) {
+    const html = document.createElement(HTML)
+    html.insertAdjacentHTML("beforeend", comp.tag)
+    return html
   }
   const existing = document.getElementById(comp.id)
   if (existing) {
@@ -60,11 +58,11 @@ export function create_copy(comp, new_id) {
   return { id: new_id, tag: comp.tag }
 }
 
-export function set_inner_text(comp, text) {
-  const elem = get_element(comp)
-  elem.innerText = text
-  return comp
-}
+// export function set_inner_text(comp, text) {
+//   const elem = get_element(comp)
+//   elem.innerText = text
+//   return comp
+// }
 
 // ------------------------------- ATTRIBUTES --------------------------------
 
@@ -130,7 +128,12 @@ function handle_attribute(elem, key, value, remove) {
       elem.hidden = true
       return
     default:
-      console.error("add_attribute: unknown attribute key / not implemented yet: " + key)
+      if (remove) {
+        elem.removeAttribute(key)
+        return
+      }
+      elem.setAttribute(key, value)
+      // console.error("add_attribute: unknown attribute key / not implemented yet: " + key)
       return
   }
 }
