@@ -18,3 +18,23 @@ Use [lustre_dev_tools](https://hexdocs.pm/lustre_dev_tools/index.html) for build
 - run `bun install`
 - run `gleam deps download`
 - go to `/examples/...` and run `gleam run -m lustre/dev start`
+
+# features / todos
+
+✅ = done \
+⚠️ = done but needs improvement \
+💼 = gets worked on / comming soon \
+❌ = not implemented yet \
+⁉️ = not sure when and how to implement
+
+- ✅ Components / Default HTML Components
+- ⚠️ State (Stateful Components)
+- ✅ Attributes
+- ✅ Listener
+- ✅❔ Drag and Drop
+- 💼 Rich Text Editor
+- ❌ Router
+- ❌ Server Components
+- ❌ Resumability (like Qwik)
+
+- ⁉️ Backend (making use of Gleams compiling → Erlang / JavaScript)
