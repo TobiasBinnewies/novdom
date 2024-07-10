@@ -28,12 +28,21 @@ Use [lustre_dev_tools](https://hexdocs.pm/lustre_dev_tools/index.html) for build
 ⁉️ = not sure when and how to implement
 
 - ✅ Components / Default HTML Components
-- ⚠️ State (Stateful Components)
+    - Keep Fn as Children?
+- ⚠️ State
+    - State Parameter (Attributes / Listener that can be changed on state change)
+- ⚠️ Stateful Components
+    - Cleanup Fn (Default: Remove Children): fn(old_state, new_state, renderFn) -> Nil
+    - Render Stateful after others (Enable Animations on render)
 - ✅ Attributes
+    - Enable only on stateful?
 - ✅ Listener
+    - Add once / remove
+    - Make same type as attributes
 - ✅❔ Drag and Drop
 - 💼 Rich Text Editor
 - ❌ Router
+    - Make use of unrendered
 - ❌ Server Components
 - ❌ Resumability (like Qwik)
 

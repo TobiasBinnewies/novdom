@@ -263,12 +263,12 @@ function handle_attribute(elem, key, value2, remove) {
           elem.style.setProperty(style2, "");
           return;
         }
-        const split3 = style2.split(":");
+        const split2 = style2.split(":");
         if (remove) {
-          elem.style.removeProperty(split3[0]);
+          elem.style.removeProperty(split2[0]);
           return;
         }
-        elem.style.setProperty(split3[0], split3[1].trim());
+        elem.style.setProperty(split2[0], split2[1].trim());
       });
       return;
     case "hidden":
@@ -563,7 +563,7 @@ function create_with_id(id, init3) {
   set_state(id, init3);
   return new State(id);
 }
-function update2(state, new$2) {
+function update(state, new$2) {
   return update_state(state.id, new$2);
 }
 function listen(state, callback) {
@@ -581,12 +581,12 @@ function render_children(state, parent, callback) {
 
 // build/dev/javascript/novdom/novdom/motion.mjs
 var DragEvent = class extends CustomType {
-  constructor(value2, source, preview, drop2, cancel, droppable) {
+  constructor(value2, source, preview, drop, cancel, droppable) {
     super();
     this.value = value2;
     this.source = source;
     this.preview = preview;
-    this.drop = drop2;
+    this.drop = drop;
     this.cancel = cancel;
     this.droppable = droppable;
   }
@@ -622,7 +622,7 @@ function ondrag(comp, preview, value2, on_drag, on_cancel, on_drop) {
         on_cancel,
         false
       );
-      update2(drag_event, new Some(event));
+      update(drag_event, new Some(event));
       add_to_viewport(
         (() => {
           let _pipe$1 = preview$1;
@@ -637,7 +637,7 @@ function ondrag(comp, preview, value2, on_drag, on_cancel, on_drop) {
 function cleanup() {
   let state = from_id(drag_event_id);
   return () => {
-    update2(state, new None());
+    update(state, new None());
     return clear_viewport("_drag_");
   };
 }
@@ -689,7 +689,7 @@ function ondrop(comp, on_drag, on_hover, on_drop) {
           cancel,
           droppable
         );
-        return update2(
+        return update(
           drag_event,
           new Some(
             new DragEvent(
@@ -713,7 +713,7 @@ function ondrop(comp, on_drag, on_hover, on_drop) {
       let $ = value(drag_event);
       if ($ instanceof Some) {
         let event = $[0];
-        return update2(
+        return update(
           drag_event,
           new Some(
             new DragEvent(
@@ -782,7 +782,7 @@ function add_drag(comp, value2, state) {
       return cleanup2();
     },
     (e) => {
-      update2(
+      update(
         state,
         filter(value(state), (x) => {
           return x !== e.value;
@@ -803,7 +803,7 @@ function add_drop(comp, state) {
       return true;
     },
     (e, cleanup2) => {
-      update2(state, prepend(e.value, value(state)));
+      update(state, prepend(e.value, value(state)));
       return cleanup2();
     }
   );

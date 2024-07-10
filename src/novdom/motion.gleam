@@ -1,9 +1,7 @@
 import gleam/option.{type Option, None, Some}
 import novdom/attribute.{add_attribute, style}
 import novdom/component.{type Component, copy, empty_component, set_children}
-import novdom/listener.{
-  onemouseover, onmousedown, onmouseout, onmouseup,
-}
+import novdom/listener.{onemouseover, onmousedown, onmouseout, onmouseup}
 import novdom/render.{add_to_viewport, clear_viewport}
 import novdom/state.{type State}
 
