@@ -1,70 +1,53 @@
-import novdom/component.{type Component}
+import novdom/internals/parameter.{type Event, type Parameter, Listener}
 
-pub type Listener =
-  #(String, fn(Event) -> Nil)
-
-pub type Event
-
-// TODO: Remove components attr from callbacks
-
-pub fn onclick(
-  component: Component,
-  callback: fn(Component, Event) -> Nil,
-) -> Component {
-  component
-  |> add_listener(#("click", callback(component, _)))
+pub fn onclick(callback: fn(Event) -> Nil) -> Parameter {
+  Listener("click", callback)
 }
 
-pub fn onmousemove(
-  component: Component,
-  callback: fn(Component, Event) -> Nil,
-) -> Component {
-  component
-  |> add_listener(#("mousemove", callback(component, _)))
+pub fn onmousemove(callback: fn(Event) -> Nil) -> Parameter {
+  Listener("mousemove", callback)
 }
 
-pub fn onemouseover(
-  component: Component,
-  callback: fn(Component, Event) -> Nil,
-) -> Component {
-  component |> add_listener(#("mouseover", callback(component, _)))
+pub fn onemouseover(callback: fn(Event) -> Nil) -> Parameter {
+  Listener("mouseover", callback)
 }
 
-pub fn onmouseout(
-  component: Component,
-  callback: fn(Component, Event) -> Nil,
-) -> Component {
-  component |> add_listener(#("mouseout", callback(component, _)))
+pub fn onmouseout(callback: fn(Event) -> Nil) -> Parameter {
+  Listener("mouseout", callback)
 }
 
-pub fn onmousedown(
-  component: Component,
-  callback: fn(Component, Event) -> Nil,
-) -> Component {
-  component |> add_listener(#("mousedown", callback(component, _)))
+pub fn onmousedown(callback: fn(Event) -> Nil) -> Parameter {
+  Listener("mousedown", callback)
 }
 
-pub fn onmouseup(
-  component: Component,
-  callback: fn(Component, Event) -> Nil,
-) -> Component {
-  component |> add_listener(#("mouseup", callback(component, _)))
+pub fn onmouseup(callback: fn(Event) -> Nil) -> Parameter {
+  Listener("mouseup", callback)
 }
 
-pub type MousePosition {
-  MousePosition(
-    x: Int,
-    y: Int,
-    osset_x: Int,
-    offset_y: Int,
-    // target: HTMLElement,
-    screen_x: Int,
-    screen_y: Int,
-  )
+/// Creates a listener that will only be called once
+/// *WARNING:* If anything else than a Listener is passed, this function will panic
+pub fn once(listener: Parameter) -> Parameter {
+  case listener {
+    Listener(event, callback) -> {
+      Listener(event, create_once(callback))
+    }
+    _ -> panic as "Listener expected"
+  }
 }
 
-@external(javascript, "../position_ffi.mjs", "get_mouse_pos")
-pub fn get_mouse_position(event: Event) -> MousePosition
+// pub type MousePosition {
+//   MousePosition(
+//     x: Int,
+//     y: Int,
+//     osset_x: Int,
+//     offset_y: Int,
+//     // target: HTMLElement,
+//     screen_x: Int,
+//     screen_y: Int,
+//   )
+// }
+// @external(javascript, "../position_ffi.mjs", "get_mouse_pos")
+// pub fn get_mouse_position(event: Event) -> MousePosition
 
-@external(javascript, "../document_ffi.mjs", "add_listener")
-pub fn add_listener(comp: Component, listeners: Listener) -> Component
+@external(javascript, "../document_ffi.mjs", "create_once")
+pub fn create_once(callback: fn(Event) -> Nil) -> fn(Event) -> Nil

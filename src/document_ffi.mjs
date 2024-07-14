@@ -6,8 +6,9 @@ const HTML = "_HTML_"
 // ------------------------------- VIEWPORT --------------------------------
 
 export function init() {
-  window.state_map = new Map()
-  window.stateful_component_map = new Map()
+  window.state_map = new Map() // state_id: String => value: a
+  window.state_parameter_map = new Map() // state_param_id: String => component_id: String
+  window.state_parameter_last_value_map = new Map() // state_param_id: String => last_value: List(Parameter)
   window.state_listener = new Map()
 }
 
@@ -66,37 +67,37 @@ export function create_copy(comp, new_id) {
 
 // ------------------------------- ATTRIBUTES --------------------------------
 
-export function set_attributes(comp, attributes) {
+// export function set_attributes(comp, attributes) {
+//   const elem = get_element(comp)
+//   // remove all attributes except id
+//   const keys = Object.keys(elem.attributes)
+//   keys.forEach((key) => {
+//     if (elem.attributes[key].name !== "id") {
+//       elem.removeAttribute(elem.attributes[key].name)
+//     }
+//   })
+//   attributes.toArray().forEach((attr) => add_attribute(comp, attr))
+//   return comp
+// }
+
+export function add_attribute(comp, name, value) {
   const elem = get_element(comp)
-  // remove all attributes except id
-  const keys = Object.keys(elem.attributes)
-  keys.forEach((key) => {
-    if (elem.attributes[key].name !== "id") {
-      elem.removeAttribute(elem.attributes[key].name)
-    }
-  })
-  attributes.toArray().forEach((attr) => add_attribute(comp, attr))
+  handle_attribute(elem, name, value, false)
   return comp
 }
 
-export function add_attribute(comp, attribute) {
+export function remove_attribute(comp, name, value) {
   const elem = get_element(comp)
-  handle_attribute(elem, attribute[0], attribute[1], false)
+  handle_attribute(elem, name, value, true)
   return comp
 }
 
-export function remove_attribute(comp, attribute) {
-  const elem = get_element(comp)
-  handle_attribute(elem, attribute[0], attribute[1], true)
-  return comp
-}
-
-function handle_attribute(elem, key, value, remove) {
+function handle_attribute(elem, name, value, remove) {
   if (value === "" || value.length === 0) {
-    elem.removeAttribute(key)
+    elem.removeAttribute(name)
     return
   }
-  switch (key) {
+  switch (name) {
     case "class":
       value.split(" ").forEach((cls) => {
         if (remove) {
@@ -129,21 +130,35 @@ function handle_attribute(elem, key, value, remove) {
       return
     default:
       if (remove) {
-        elem.removeAttribute(key)
+        elem.removeAttribute(name)
         return
       }
-      elem.setAttribute(key, value)
-      // console.error("add_attribute: unknown attribute key / not implemented yet: " + key)
+      elem.setAttribute(name, value)
+      // console.error("add_attribute: unknown attribute name / not implemented yet: " + name)
       return
   }
 }
 
 // ------------------------------- LISTENER --------------------------------
 
-export function add_listener(comp, listener) {
+export function add_listener(comp, name, callback) {
   const elem = get_element(comp)
-  elem.addEventListener(listener[0], listener[1])
+  elem.addEventListener(name, callback)
   return comp
+}
+
+export function remove_listener(comp, name, callback) {
+  const elem = get_element(comp)
+  elem.removeEventListener(name, callback)
+  return comp
+}
+
+export function create_once(callback) {
+  const fn = (event) => {
+    callback(event)
+    event.target.removeEventListener(event.type, fn)
+  }
+  return fn
 }
 
 // ------------------------------- CHILDREN --------------------------------
@@ -225,6 +240,23 @@ export function get_stateful_component(id) {
 export function add_state_listener(id, callback) {
   let current = window.state_listener.get(id) || []
   window.state_listener.set(id, [callback, ...current])
+}
+
+export function add_state_parameter(comp, state_param_id) {
+  window.state_parameter_map.set(state_param_id, comp.id)
+  return comp
+}
+
+export function get_component_id_from_state_param_id(id) {
+  return window.state_parameter_map.get(id)
+}
+
+export function set_last_state_parameter_value(id, value) {
+  window.state_parameter_last_value_map.set(id, value)
+}
+
+export function get_last_state_parameter_value(id) {
+  return window.state_parameter_last_value_map.get(id)
 }
 
 // ------------------------------- OTHER --------------------------------

@@ -12,6 +12,10 @@ pub opaque type Component {
   // TextContainer(id: ComponentId, attributes: List(Attribute), value: String)
 }
 
+pub fn get_component(id: ComponentId) -> Component {
+  Component(id, "")
+}
+
 pub fn empty_component(tag: String) -> Component {
   let id = utils.unique_id()
   let comp = Component(id, tag)
@@ -21,7 +25,7 @@ pub fn empty_component(tag: String) -> Component {
 
 pub fn component(
   tag: String,
-  // attrs: List(Attribute),
+  // attrs: List(Parameter),
   children: fn(Component) -> List(Component),
 ) -> Component {
   let comp = empty_component(tag)

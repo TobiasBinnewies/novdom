@@ -2,7 +2,8 @@ import novdom/component.{type Component, set_children}
 import novdom/internals/utils
 
 pub type State(a) {
-  State(id: String)
+  State(state_id: String)
+  StateItem(state_id: String, item_id: String)
 }
 
 pub fn create(init: a) -> State(a) {
@@ -21,35 +22,35 @@ pub fn from_id(id: String) -> State(a) {
   State(id)
 }
 
-/// get value
 pub fn value(state: State(a)) -> a {
-  get_state(state.id)
+  get_state(state.state_id)
 }
 
+/// get value
 /// update value
 pub fn update(state: State(a), new: a) -> Nil {
-  update_state(state.id, new)
+  update_state(state.state_id, new)
 }
 
 pub fn listen(state: State(a), callback: fn(a) -> Nil) -> Nil {
-  add_state_listener(state.id, callback)
+  add_state_listener(state.state_id, callback)
 }
 
 // TODO: Add render for just one child component (is this possible?)
 
-pub fn render_children(
-  state: State(a),
-  parent: Component,
-  callback: fn(a) -> List(Component),
-) -> List(Component) {
-  let cb = fn(value) {
-    parent
-    |> set_children(callback(value))
-    Nil
-  }
-  add_state_listener(state.id, cb)
-  callback(value(state))
-}
+// pub fn render_children(
+//   state: State(a),
+//   parent: Component,
+//   callback: fn(a) -> List(Component),
+// ) -> List(Component) {
+//   let cb = fn(value) {
+//     parent
+//     |> set_children(callback(value))
+//     Nil
+//   }
+//   add_state_listener(state.state_id, cb)
+//   callback(value(state))
+// }
 
 @external(javascript, "../document_ffi.mjs", "get_state")
 fn get_state(key: String) -> a

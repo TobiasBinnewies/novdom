@@ -73,31 +73,30 @@ var NonEmpty = class extends List {
     this.tail = tail;
   }
 };
-
-// build/dev/javascript/gleam_stdlib/gleam/option.mjs
-var Some = class extends CustomType {
-  constructor(x0) {
-    super();
-    this[0] = x0;
-  }
-};
-var None = class extends CustomType {
-};
+function makeError(variant, module, line, fn, message, extra) {
+  let error = new globalThis.Error(message);
+  error.gleam_error = variant;
+  error.module = module;
+  error.line = line;
+  error.fn = fn;
+  for (let k in extra)
+    error[k] = extra[k];
+  return error;
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
-function fold(loop$list, loop$initial, loop$fun) {
+function each(loop$list, loop$f) {
   while (true) {
     let list = loop$list;
-    let initial = loop$initial;
-    let fun = loop$fun;
+    let f = loop$f;
     if (list.hasLength(0)) {
-      return initial;
+      return void 0;
     } else {
       let x = list.head;
-      let rest$1 = list.tail;
-      loop$list = rest$1;
-      loop$initial = fun(initial, x);
-      loop$fun = fun;
+      let xs = list.tail;
+      f(x);
+      loop$list = xs;
+      loop$f = f;
     }
   }
 }
@@ -187,10 +186,6 @@ function add_to_viewport(comp, id) {
   const viewport = document.getElementById(id);
   viewport.appendChild(elem);
 }
-function clear_viewport(id) {
-  const viewport = document.getElementById(id);
-  viewport.replaceChildren();
-}
 function get_element(comp) {
   if (comp.id === TEXT) {
     return comp.tag;
@@ -209,30 +204,19 @@ function get_element(comp) {
   add_to_unrendered(elem);
   return elem;
 }
-function set_attributes(comp, attributes) {
+function add_attribute(comp, name, value) {
   const elem = get_element(comp);
-  const keys = Object.keys(elem.attributes);
-  keys.forEach((key) => {
-    if (elem.attributes[key].name !== "id") {
-      elem.removeAttribute(elem.attributes[key].name);
-    }
-  });
-  attributes.toArray().forEach((attr) => add_attribute(comp, attr));
+  handle_attribute(elem, name, value, false);
   return comp;
 }
-function add_attribute(comp, attribute) {
-  const elem = get_element(comp);
-  handle_attribute(elem, attribute[0], attribute[1], false);
-  return comp;
-}
-function handle_attribute(elem, key, value2, remove) {
-  if (value2 === "" || value2.length === 0) {
-    elem.removeAttribute(key);
+function handle_attribute(elem, name, value, remove) {
+  if (value === "" || value.length === 0) {
+    elem.removeAttribute(name);
     return;
   }
-  switch (key) {
+  switch (name) {
     case "class":
-      value2.split(" ").forEach((cls) => {
+      value.split(" ").forEach((cls) => {
         if (remove) {
           elem.classList.remove(cls);
           return;
@@ -241,12 +225,12 @@ function handle_attribute(elem, key, value2, remove) {
       });
       return;
     case "style":
-      value2.split(";").forEach((style2) => {
-        if (!style2.includes(":")) {
-          elem.style.setProperty(style2, "");
+      value.split(";").forEach((style) => {
+        if (!style.includes(":")) {
+          elem.style.setProperty(style, "");
           return;
         }
-        const split3 = style2.split(":");
+        const split3 = style.split(":");
         if (remove) {
           elem.style.removeProperty(split3[0]);
           return;
@@ -263,16 +247,16 @@ function handle_attribute(elem, key, value2, remove) {
       return;
     default:
       if (remove) {
-        elem.removeAttribute(key);
+        elem.removeAttribute(name);
         return;
       }
-      elem.setAttribute(key, value2);
+      elem.setAttribute(name, value);
       return;
   }
 }
-function add_listener(comp, listener) {
+function add_listener(comp, name, callback) {
   const elem = get_element(comp);
-  elem.addEventListener(listener[0], listener[1]);
+  elem.addEventListener(name, callback);
   return comp;
 }
 function set_children(comp, children_comp) {
@@ -280,17 +264,6 @@ function set_children(comp, children_comp) {
   const children = children_comp.toArray().map(get_element);
   elem.replaceChildren(...children);
   return comp;
-}
-function update_state(id, value2) {
-  ;
-  (window.state_listener.get(id) || []).forEach((callback) => callback(value2));
-  set_state(id, value2);
-}
-function set_state(id, value2) {
-  window.state_map.set(id, value2);
-}
-function get_state(id) {
-  return window.state_map.get(id);
 }
 
 // build/dev/javascript/novdom/utils_ffi.mjs
@@ -319,105 +292,76 @@ function component(tag, children) {
   return comp;
 }
 var text_tag = "_TEXT_";
-function text(value2) {
-  return new Component(text_tag, value2);
+function text(value) {
+  return new Component(text_tag, value);
+}
+
+// build/dev/javascript/novdom/novdom/internals/parameter.mjs
+var Attribute = class extends CustomType {
+  constructor(name, value) {
+    super();
+    this.name = name;
+    this.value = value;
+  }
+};
+var Listener = class extends CustomType {
+  constructor(name, callback) {
+    super();
+    this.name = name;
+    this.callback = callback;
+  }
+};
+function set_parameters(component2, params) {
+  each(
+    params,
+    (param) => {
+      if (param instanceof Attribute) {
+        let key = param.name;
+        let value = param.value;
+        return add_attribute(component2, key, value);
+      } else if (param instanceof Listener) {
+        let name = param.name;
+        let callback = param.callback;
+        return add_listener(component2, name, callback);
+      } else {
+        let name = param.name;
+        let callback = param.callback;
+        throw makeError(
+          "todo",
+          "novdom/internals/parameter",
+          27,
+          "",
+          "Implement add_modifier",
+          {}
+        );
+      }
+    }
+  );
+  return component2;
 }
 
 // build/dev/javascript/novdom/novdom/attribute.mjs
-function class$(value2) {
-  return ["class", value2];
-}
-function style(values) {
-  let res = fold(
-    values,
-    "",
-    (res2, _use1) => {
-      let key = _use1[0];
-      let value2 = _use1[1];
-      if (value2 === "") {
-        return res2 + key + ";";
-      } else {
-        return res2 + key + ":" + value2 + ";";
-      }
-    }
-  );
-  return ["style", res];
-}
-
-// build/dev/javascript/novdom/motion_ffi.mjs
-function add_mouse_up_listener(fn) {
-  document.getElementById("_app_").addEventListener("mouseup", fn);
-}
-
-// build/dev/javascript/novdom/novdom/listener.mjs
-function onclick(component2, callback) {
-  let _pipe = component2;
-  return add_listener(
-    _pipe,
-    ["click", (_capture) => {
-      return callback(component2, _capture);
-    }]
-  );
-}
-
-// build/dev/javascript/novdom/novdom/state.mjs
-var State = class extends CustomType {
-  constructor(id) {
-    super();
-    this.id = id;
-  }
-};
-function from_id(id) {
-  return new State(id);
-}
-function value(state) {
-  return get_state(state.id);
-}
-function create_with_id(id, init3) {
-  set_state(id, init3);
-  return new State(id);
-}
-function update2(state, new$2) {
-  return update_state(state.id, new$2);
-}
-
-// build/dev/javascript/novdom/novdom/motion.mjs
-var drag_event_id = "_DRAGGABLE_";
-function cleanup() {
-  let state = from_id(drag_event_id);
-  return () => {
-    update2(state, new None());
-    return clear_viewport("_drag_");
-  };
-}
-function init2() {
-  let drag_event = create_with_id(drag_event_id, new None());
-  return add_mouse_up_listener(
-    () => {
-      let $ = value(drag_event);
-      if ($ instanceof Some && !$[0].droppable) {
-        let event = $[0];
-        return event.cancel(event, cleanup());
-      } else {
-        return void 0;
-      }
-    }
-  );
+function class$(value) {
+  return new Attribute("class", value);
 }
 
 // build/dev/javascript/novdom/novdom/framework.mjs
 function start(component2) {
   init();
-  init2();
   let _pipe = component2();
   return add_to_viewport(_pipe, "_app_");
 }
 
 // build/dev/javascript/novdom/novdom/html.mjs
 var div_tag = "div";
-function div(attributes, children) {
+function div(parameters, children) {
   let _pipe = component(div_tag, children);
-  return set_attributes(_pipe, attributes);
+  return set_parameters(_pipe, parameters);
+}
+
+// build/dev/javascript/novdom/novdom/listener.mjs
+function onclick(callback) {
+  return new Listener("click", callback);
 }
 
 // build/dev/javascript/app/app.mjs
@@ -437,21 +381,19 @@ function main() {
         (_) => {
           return toList([
             div(
-              toList([class$("p-2 bg-green-200 select-none")]),
-              (button) => {
-                let _pipe = button;
+              toList([
+                class$("p-2 bg-green-200 select-none"),
                 onclick(
-                  _pipe,
-                  (_2, _1) => {
+                  (_2) => {
                     println("Button clicked!");
-                    let _pipe$1 = button;
-                    add_attribute(
-                      _pipe$1,
-                      style(toList([["background-color", random_color()]]))
+                    println(
+                      "Any javascript can be executed here: " + random_color()
                     );
                     return void 0;
                   }
-                );
+                )
+              ]),
+              (button) => {
                 return toList([text("Click me!")]);
               }
             )

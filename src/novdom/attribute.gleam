@@ -1,21 +1,18 @@
 import gleam/list
-import novdom/component.{type Component}
-
-pub type Attribute =
-  #(String, String)
+import novdom/internals/parameter.{type Parameter, Attribute}
 
 /// Adding classes to the component
 /// Concatenating the classes if the class attribute already exists
-pub fn class(value: String) -> Attribute {
-  #("class", value)
+pub fn class(value: String) -> Parameter {
+  Attribute("class", value)
 }
 
 // TODO: Tailwind, merge so that classes are overidden
-// pub fn tailwind(value: String) -> Attribute {}
+// pub fn tailwind(value: String) -> Parameter {}
 
 /// Adding inline-styles to the component
 /// Overriding the style attribute if it already exists
-pub fn style(values: List(#(String, String))) -> Attribute {
+pub fn style(values: List(#(String, String))) -> Parameter {
   let res = {
     use res, #(key, value) <- list.fold(values, "")
     case value {
@@ -23,22 +20,21 @@ pub fn style(values: List(#(String, String))) -> Attribute {
       _ -> res <> key <> ":" <> value <> ";"
     }
   }
-  #("style", res)
+  Attribute("style", res)
 }
 
-pub fn hidden() -> Attribute {
-  #("hidden", "hidden")
+pub fn hidden() -> Parameter {
+  Attribute("hidden", "hidden")
 }
 
-pub fn editable() -> Attribute {
-  #("contenteditable", "true")
+pub fn editable() -> Parameter {
+  Attribute("contenteditable", "true")
 }
+// @external(javascript, "../document_ffi.mjs", "set_attributes")
+// pub fn set_attributes(comp: Component, attrs: List(Attribute)) -> Component
 
-@external(javascript, "../document_ffi.mjs", "set_attributes")
-pub fn set_attributes(comp: Component, attrs: List(Attribute)) -> Component
+// @external(javascript, "../document_ffi.mjs", "add_attribute")
+// pub fn add_attribute(comp: Component, attr: Attribute) -> Component
 
-@external(javascript, "../document_ffi.mjs", "add_attribute")
-pub fn add_attribute(comp: Component, attr: Attribute) -> Component
-
-@external(javascript, "../document_ffi.mjs", "remove_attribute")
-pub fn remove_attribute(comp: Component, attr: Attribute) -> Component
+// @external(javascript, "../document_ffi.mjs", "remove_attribute")
+// pub fn remove_attribute(comp: Component, attr: Attribute) -> Component

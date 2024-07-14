@@ -1,6 +1,6 @@
 import gleam/int
 import gleam/io
-import novdom/attribute.{add_attribute, class, style}
+import novdom/attribute.{class}
 import novdom/component.{text}
 import novdom/framework
 import novdom/html.{div}
@@ -14,17 +14,16 @@ pub fn main() {
   // child components
   [
     {
-      use button <- div([class("p-2 bg-green-200 select-none")])
+      use button <- div([
+        class("p-2 bg-green-200 select-none"),
+        // listener
+        onclick(fn(_) {
+          io.println("Button clicked!")
 
-      // listener
-      button
-      |> onclick(fn(_, _) {
-        io.println("Button clicked!")
-        button
-        |> add_attribute(style([#("background-color", random_color())]))
-        Nil
-      })
-
+          io.println("Any javascript can be executed here: " <> random_color())
+          Nil
+        }),
+      ])
       // button children
       [text("Click me!")]
     },
