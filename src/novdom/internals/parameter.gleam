@@ -8,7 +8,7 @@ pub type Parameter {
   Listener(name: String, callback: fn(Event) -> Nil)
 
   /// *WARNING:* Cannot return modifier
-  Modifier(name: String, callback: fn() -> List(Parameter))
+  Modifier(name: String, callback: fn(fn() -> Nil) -> List(Parameter))
   StateParameter(id: String, initial: List(Parameter))
 }
 

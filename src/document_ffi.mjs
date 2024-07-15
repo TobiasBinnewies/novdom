@@ -16,6 +16,7 @@ function add_to_unrendered(elem) {
   document.getElementById("_unrendered_").appendChild(elem)
 }
 
+// TODO: Add onrender / offredner call
 export function add_to_viewport(comp, id) {
   const elem = get_element(comp)
   const viewport = document.getElementById(id)
@@ -92,6 +93,7 @@ export function remove_attribute(comp, name, value) {
   return comp
 }
 
+// TODO: Call onrender / offrender on hidden change (or add attribute that does the same with the call)
 function handle_attribute(elem, name, value, remove) {
   if (value === "" || value.length === 0) {
     elem.removeAttribute(name)
@@ -163,6 +165,7 @@ export function create_once(callback) {
 
 // ------------------------------- CHILDREN --------------------------------
 
+// TODO: Add onrender / offrender call + boolean to set if it should be called
 export function set_children(comp, children_comp) {
   const elem = get_element(comp)
   const children = children_comp.toArray().map(get_element)
@@ -214,6 +217,12 @@ export function remove_child(comp, child_comp) {
   return comp
 }
 
+export function move_children(from, to) {
+  const from_elem = get_element(from)
+  const to_elem = get_element(to)
+  to_elem.replaceChildren(...from_elem.children)
+}
+
 // ------------------------------- STATE --------------------------------
 
 export function update_state(id, value) {
@@ -257,6 +266,23 @@ export function set_last_state_parameter_value(id, value) {
 
 export function get_last_state_parameter_value(id) {
   return window.state_parameter_last_value_map.get(id)
+}
+
+// ------------------------------- MODIFIER --------------------------------
+
+export function add_modifier(comp, name, callback) {
+  const elem = get_element(comp)
+  elem[name] = callback
+}
+
+// TODO: Add counter (or similar) to call cleanup only once at the end of all "cleanup" calls
+function call_modifier(elem, name, cleanup) {
+  elem.children.forEach((child) => {
+    call_modifier(child, name, () => {})
+  })
+  if (elem[name]) {
+    elem[name](cleanup)
+  }
 }
 
 // ------------------------------- OTHER --------------------------------

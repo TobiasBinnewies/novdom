@@ -78,3 +78,6 @@ pub fn remove_child_at(comp: Component, at: Int) -> Component
 
 @external(javascript, "../document_ffi.mjs", "remove_child")
 pub fn remove_child(comp: Component, child: Component) -> Component
+
+@external(javascript, "../document_ffi.mjs", "move_children")
+pub fn move_children(from: Component, to: Component) -> Nil
