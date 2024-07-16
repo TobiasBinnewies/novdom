@@ -30,11 +30,3 @@ pub fn hidden() -> Parameter {
 pub fn editable() -> Parameter {
   Attribute("contenteditable", "true")
 }
-// @external(javascript, "../document_ffi.mjs", "set_attributes")
-// pub fn set_attributes(comp: Component, attrs: List(Attribute)) -> Component
-
-// @external(javascript, "../document_ffi.mjs", "add_attribute")
-// pub fn add_attribute(comp: Component, attr: Attribute) -> Component
-
-// @external(javascript, "../document_ffi.mjs", "remove_attribute")
-// pub fn remove_attribute(comp: Component, attr: Attribute) -> Component

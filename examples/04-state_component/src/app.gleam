@@ -20,7 +20,7 @@ pub fn main() {
   div([class("p-5")], [
     div(
       [
-        class("p-2 bg-green-200 select-none"),
+        class("p-2 bg-green-200 select-none hover:bg-violet-600 active:bg-yellow-700"),
         onclick(fn(_) {
           io.println("Button clicked!")
           state.update(boolean, !state.value(boolean))

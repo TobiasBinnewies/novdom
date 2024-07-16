@@ -542,7 +542,9 @@ function main() {
         toList([
           div(
             toList([
-              class$("p-2 bg-green-200 select-none"),
+              class$(
+                "p-2 bg-green-200 select-none hover:bg-violet-600 active:bg-yellow-700"
+              ),
               onclick(
                 (_) => {
                   println("Button clicked!");

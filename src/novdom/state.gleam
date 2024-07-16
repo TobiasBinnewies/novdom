@@ -22,11 +22,11 @@ pub fn from_id(id: String) -> State(a) {
   State(id)
 }
 
+/// get value
 pub fn value(state: State(a)) -> a {
   get_state(state.state_id)
 }
 
-/// get value
 /// update value
 pub fn update(state: State(a), new: a) -> Nil {
   update_state(state.state_id, new)
@@ -35,22 +35,6 @@ pub fn update(state: State(a), new: a) -> Nil {
 pub fn listen(state: State(a), callback: fn(a) -> Nil) -> Nil {
   add_state_listener(state.state_id, callback)
 }
-
-// TODO: Add render for just one child component (is this possible?)
-
-// pub fn render_children(
-//   state: State(a),
-//   parent: Component,
-//   callback: fn(a) -> List(Component),
-// ) -> List(Component) {
-//   let cb = fn(value) {
-//     parent
-//     |> set_children(callback(value))
-//     Nil
-//   }
-//   add_state_listener(state.state_id, cb)
-//   callback(value(state))
-// }
 
 @external(javascript, "../document_ffi.mjs", "get_state")
 fn get_state(key: String) -> a
