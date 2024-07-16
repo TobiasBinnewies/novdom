@@ -17,19 +17,17 @@ pub fn get_component(id: ComponentId) -> Component {
   Component(id, "")
 }
 
-pub fn component(
-  tag: String,
-  // attrs: List(Parameter),
-  children: List(Component),
-) -> Component {
+pub fn component(tag: String, children: List(Component)) -> Component {
   utils.unique_id()
   |> Component(tag)
   |> function.tap(create_element(_, children))
 }
 
-// TODO: Wrap text with <p> tag --> attributes possible (/ best practise?)
+/// gets wraped by a custom element tag (<_TEXT_>)
 pub fn text(value) -> Component {
-  Component(text_tag, value)
+  utils.unique_id()
+  |> Component(text_tag)
+  |> function.tap(create_text_element(_, value))
 }
 
 /// gets wraped by a custom element tag (<_HTML_>)
@@ -44,6 +42,9 @@ pub fn copy(comp: Component) -> Component {
 
 @external(javascript, "../document_ffi.mjs", "get_element")
 fn create_element(comp: Component, children: List(Component)) -> Nil
+
+@external(javascript, "../document_ffi.mjs", "get_element")
+fn create_text_element(comp: Component, text: String) -> Nil
 
 @external(javascript, "../document_ffi.mjs", "create_copy")
 fn create_copy(comp: Component, id: String) -> Component

@@ -128,7 +128,6 @@ function println(string) {
 }
 
 // build/dev/javascript/novdom/document_ffi.mjs
-var TEXT = "_TEXT_";
 var HTML = "_HTML_";
 function init() {
   window.state_map = /* @__PURE__ */ new Map();
@@ -145,9 +144,6 @@ function add_to_viewport(comp, id) {
   viewport.appendChild(elem);
 }
 function get_element(comp, children_comp) {
-  if (comp.id === TEXT) {
-    return comp.tag;
-  }
   if (comp.id === HTML) {
     const html = document.createElement(HTML);
     html.insertAdjacentHTML("beforeend", comp.tag);
@@ -159,8 +155,12 @@ function get_element(comp, children_comp) {
   }
   const elem = document.createElement(comp.tag);
   elem.setAttribute("id", comp.id);
-  const children = children_comp.toArray().map(get_element);
-  elem.replaceChildren(...children);
+  try {
+    const children = children_comp.toArray().map(get_element);
+    elem.replaceChildren(...children);
+  } catch (_) {
+    elem.textContent = children_comp;
+  }
   add_to_unrendered(elem);
   return elem;
 }
@@ -202,13 +202,6 @@ function handle_attribute(elem, name, value2, remove) {
         }
         elem.style.setProperty(split3[0], split3[1].trim());
       });
-      return;
-    case "hidden":
-      if (remove) {
-        elem.hidden = false;
-        return;
-      }
-      elem.hidden = true;
       return;
     default:
       if (remove) {
@@ -292,7 +285,14 @@ function component(tag, children) {
 }
 var text_tag = "_TEXT_";
 function text(value2) {
-  return new Component(text_tag, value2);
+  let _pipe = create_id();
+  let _pipe$1 = new Component(_pipe, text_tag);
+  return tap(
+    _pipe$1,
+    (_capture) => {
+      return get_element(_capture, value2);
+    }
+  );
 }
 
 // build/dev/javascript/novdom/novdom/internals/parameter.mjs
@@ -559,12 +559,7 @@ function main() {
             (value2) => {
               return value2;
             },
-            toList([
-              div(
-                toList([class$("p-2 bg-green-200 select-none")]),
-                toList([text("current value: nothind")])
-              )
-            ])
+            toList([text("current value: nothind")])
           ),
           ternary1(
             boolean,
@@ -574,7 +569,11 @@ function main() {
             toList([
               div(
                 toList([class$("p-2 bg-yellow-200 select-none")]),
-                toList([text("current value: nothind")])
+                toList([
+                  text("current value: nothind"),
+                  text("current value: nothind"),
+                  text("current value: nothind")
+                ])
               )
             ]),
             toList([

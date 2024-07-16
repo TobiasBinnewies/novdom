@@ -32,13 +32,7 @@ pub fn main() {
       [text("current value: " <> "nothind")],
     ),
     state_component.if1(boolean, fn(value) { value }, [
-      {
-        div(
-          [class("p-2 bg-green-200 select-none")],
-          // button children
-          [text("current value: " <> "nothind")],
-        )
-      },
+      text("current value: " <> "nothind"),
     ]),
     state_component.ternary1(
       boolean,
@@ -47,7 +41,7 @@ pub fn main() {
         div(
           [class("p-2 bg-yellow-200 select-none")],
           // button children
-          [text("current value: " <> "nothind")],
+          [text("current value: " <> "nothind"), text("current value: " <> "nothind"), text("current value: " <> "nothind")],
         ),
       ],
       [

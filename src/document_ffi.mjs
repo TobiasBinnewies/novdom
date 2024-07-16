@@ -16,7 +16,6 @@ function add_to_unrendered(elem) {
   document.getElementById("_unrendered_").appendChild(elem)
 }
 
-// TODO: Add onrender / offredner call
 export function add_to_viewport(comp, id) {
   const elem = get_element(comp)
   const viewport = document.getElementById(id)
@@ -25,15 +24,15 @@ export function add_to_viewport(comp, id) {
 
 export function clear_viewport(id) {
   const viewport = document.getElementById(id)
-  viewport.replaceChildren()
+      viewport.replaceChildren()
 }
 
 // ------------------------------- ELEMENT --------------------------------
 
 export function get_element(comp, children_comp) {
-  if (comp.id === TEXT) {
-    return comp.tag
-  }
+  // if (comp.id === TEXT) {
+  //   return comp.tag
+  // }
   if (comp.id === HTML) {
     const html = document.createElement(HTML)
     html.insertAdjacentHTML("beforeend", comp.tag)
@@ -46,9 +45,13 @@ export function get_element(comp, children_comp) {
   const elem = document.createElement(comp.tag)
   elem.setAttribute("id", comp.id)
 
-  const children = children_comp.toArray().map(get_element)
-  elem.replaceChildren(...children)
-
+  try {
+    const children = children_comp.toArray().map(get_element)
+    elem.replaceChildren(...children)
+  } catch (_) {
+    // throws if children_comp is not a list, e.g. TEXT
+    elem.textContent = children_comp
+  }
   add_to_unrendered(elem)
   return elem
 }
@@ -94,7 +97,7 @@ export function remove_attribute(comp, name, value) {
   return comp
 }
 
-// TODO: Call onrender / offrender on hidden change (or add attribute that does the same with the call)
+// TODO: Remove hidden case
 function handle_attribute(elem, name, value, remove) {
   if (value === "" || value.length === 0) {
     elem.removeAttribute(name)
@@ -123,13 +126,6 @@ function handle_attribute(elem, name, value, remove) {
         }
         elem.style.setProperty(split[0], split[1].trim())
       })
-      return
-    case "hidden":
-      if (remove) {
-        elem.hidden = false
-        return
-      }
-      elem.hidden = true
       return
     default:
       if (remove) {
@@ -166,7 +162,6 @@ export function create_once(callback) {
 
 // ------------------------------- CHILDREN --------------------------------
 
-// TODO: Add onrender / offrender call + boolean to set if it should be called
 export function set_children(comp, children_comp) {
   const elem = get_element(comp)
   const children = children_comp.toArray().map(get_element)
@@ -269,22 +264,6 @@ export function get_last_state_parameter_value(id) {
   return window.state_parameter_last_value_map.get(id)
 }
 
-// ------------------------------- MODIFIER --------------------------------
-
-export function add_modifier(comp, name, callback) {
-  const elem = get_element(comp)
-  elem[name] = callback
-}
-
-// TODO: Add counter (or similar) to call cleanup only once at the end of all "cleanup" calls
-function call_modifier(elem, name, cleanup) {
-  elem.children.forEach((child) => {
-    call_modifier(child, name, () => {})
-  })
-  if (elem[name]) {
-    elem[name](cleanup)
-  }
-}
 
 // ------------------------------- OTHER --------------------------------
 export class Ok {
