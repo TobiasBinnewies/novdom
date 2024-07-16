@@ -278,8 +278,7 @@ function empty_component(tag) {
 }
 function component(tag, children) {
   let comp = empty_component(tag);
-  let children$1 = children(comp);
-  set_children(comp, children$1);
+  set_children(comp, children);
   return comp;
 }
 var text_tag = "_TEXT_";
@@ -608,40 +607,34 @@ function main() {
             }
           )
         ]),
-        (parent) => {
-          return toList([
-            div(
-              toList([
-                class$("p-2 bg-green-200 select-none"),
-                onclick(
-                  (_) => {
-                    println("Button clicked!");
-                    update2(boolean, !value(boolean));
-                    return void 0;
-                  }
-                )
-              ]),
-              (button) => {
-                return toList([text("current value: nothind")]);
-              }
-            ),
-            div(
-              toList([
-                class$("p-2 bg-yellow-200 select-none"),
-                onclick(
-                  (_) => {
-                    println("Button2 clicked!");
-                    update2(boolean2, !value(boolean2));
-                    return void 0;
-                  }
-                )
-              ]),
-              (button) => {
-                return toList([text("current value: nothind")]);
-              }
-            )
-          ]);
-        }
+        toList([
+          div(
+            toList([
+              class$("p-2 bg-green-200 select-none"),
+              onclick(
+                (_) => {
+                  println("Button clicked!");
+                  update2(boolean, !value(boolean));
+                  return void 0;
+                }
+              )
+            ]),
+            toList([text("current value: nothind")])
+          ),
+          div(
+            toList([
+              class$("p-2 bg-yellow-200 select-none"),
+              onclick(
+                (_) => {
+                  println("Button2 clicked!");
+                  update2(boolean2, !value(boolean2));
+                  return void 0;
+                }
+              )
+            ]),
+            toList([text("current value: nothind")])
+          )
+        ])
       );
     }
   );

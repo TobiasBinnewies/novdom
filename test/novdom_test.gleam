@@ -15,8 +15,7 @@ pub fn framework_start_test() {
   {
     use <- framework.start()
 
-    use _ <- div([class("p-5 bg-blue-100 select-none")])
-    [text("Hello, world!")]
+    div([class("p-5 bg-blue-100 select-none")], [text("Hello, world!")])
   }
 
   selector_in_document("#_app_") |> should.be_true

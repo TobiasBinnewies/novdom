@@ -1,7 +1,5 @@
 import novdom/attribute.{hidden}
-import novdom/component.{
-  type Component, component, empty_component, set_children,
-}
+import novdom/component.{type Component, component, set_children}
 import novdom/internals/parameter.{set_parameters}
 import novdom/state.{type State, listen, value}
 import novdom/state_parameter
@@ -13,7 +11,7 @@ pub fn if1(
   when: fn(a) -> Bool,
   then: List(Component),
 ) -> Component {
-  component(state_component_tag, fn(_) { then })
+  component(state_component_tag, then)
   |> set_parameters([state_parameter.if1(state, when, [hidden()])])
 }
 
@@ -45,16 +43,16 @@ pub fn ternary1(
   otherwise: List(Component),
 ) -> Component {
   let then =
-    component(state_component_tag, fn(_) { then })
+    component(state_component_tag, then)
     |> set_parameters([state_parameter.if1(state, when, [hidden()])])
 
   let otherwise =
-    component(state_component_tag, fn(_) { otherwise })
+    component(state_component_tag, otherwise)
     |> set_parameters([
       state_parameter.if1(state, fn(a) { !when(a) }, [hidden()]),
     ])
 
-  component(state_component_tag, fn(_) { [then, otherwise] })
+  component(state_component_tag, [then, otherwise])
 }
 
 pub fn utilize(state: State(a), do: fn(a) -> List(Component)) -> Component {

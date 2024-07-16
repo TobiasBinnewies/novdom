@@ -10,24 +10,29 @@ pub fn main() {
   use <- framework.start()
 
   // parent component
-  use _ <- div([class("p-5 bg-blue-100")])
-  // child components
-  [
-    {
-      use button <- div([
-        class("p-2 bg-green-200 select-none"),
-        // listener
-        onclick(fn(_) {
-          io.println("Button clicked!")
+  div(
+    [class("p-5 bg-blue-100")],
+    // child components
+    [
+      // button
+      div(
+        [
+          class("p-2 bg-green-200 select-none"),
+          // listener
+          onclick(fn(_) {
+            io.println("Button clicked!")
 
-          io.println("Any javascript can be executed here: " <> random_color())
-          Nil
-        }),
-      ])
-      // button children
-      [text("Click me!")]
-    },
-  ]
+            io.println(
+              "Any javascript can be executed here: " <> random_color(),
+            )
+            Nil
+          }),
+        ],
+        // button children
+        [text("Click me!")],
+      ),
+    ],
+  )
 }
 
 fn random_color() -> String {

@@ -7,10 +7,12 @@ pub fn main() {
   use <- framework.start()
 
   // parent component
-  use parent <- div([class("p-5 bg-blue-100 select-none")])
-  // child components
-  [
-    text("Hello, world!"),
-    // simple text component
-  ]
+  div(
+    [class("p-5 bg-blue-100 select-none")],
+    // child components
+    [
+      // simple text component
+      text("Hello, world!"),
+    ],
+  )
 }

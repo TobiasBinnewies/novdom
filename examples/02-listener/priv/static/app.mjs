@@ -175,7 +175,8 @@ var TEXT = "_TEXT_";
 var HTML = "_HTML_";
 function init() {
   window.state_map = /* @__PURE__ */ new Map();
-  window.stateful_component_map = /* @__PURE__ */ new Map();
+  window.state_parameter_map = /* @__PURE__ */ new Map();
+  window.state_parameter_last_value_map = /* @__PURE__ */ new Map();
   window.state_listener = /* @__PURE__ */ new Map();
 }
 function add_to_unrendered(elem) {
@@ -265,6 +266,10 @@ function set_children(comp, children_comp) {
   elem.replaceChildren(...children);
   return comp;
 }
+function add_state_parameter(comp, state_param_id) {
+  window.state_parameter_map.set(state_param_id, comp.id);
+  return comp;
+}
 
 // build/dev/javascript/novdom/utils_ffi.mjs
 function create_id() {
@@ -287,8 +292,7 @@ function empty_component(tag) {
 }
 function component(tag, children) {
   let comp = empty_component(tag);
-  let children$1 = children(comp);
-  set_children(comp, children$1);
+  set_children(comp, children);
   return comp;
 }
 var text_tag = "_TEXT_";
@@ -311,6 +315,13 @@ var Listener = class extends CustomType {
     this.callback = callback;
   }
 };
+var Modifier = class extends CustomType {
+  constructor(name, callback) {
+    super();
+    this.name = name;
+    this.callback = callback;
+  }
+};
 function set_parameters(component2, params) {
   each(
     params,
@@ -323,17 +334,23 @@ function set_parameters(component2, params) {
         let name = param.name;
         let callback = param.callback;
         return add_listener(component2, name, callback);
-      } else {
+      } else if (param instanceof Modifier) {
         let name = param.name;
         let callback = param.callback;
         throw makeError(
           "todo",
           "novdom/internals/parameter",
-          27,
+          25,
           "",
           "Implement add_modifier",
           {}
         );
+      } else {
+        let id = param.id;
+        let initial = param.initial;
+        let _pipe = component2;
+        let _pipe$1 = add_state_parameter(_pipe, id);
+        return set_parameters(_pipe$1, initial);
       }
     }
   );
@@ -378,27 +395,23 @@ function main() {
     () => {
       return div(
         toList([class$("p-5 bg-blue-100")]),
-        (_) => {
-          return toList([
-            div(
-              toList([
-                class$("p-2 bg-green-200 select-none"),
-                onclick(
-                  (_2) => {
-                    println("Button clicked!");
-                    println(
-                      "Any javascript can be executed here: " + random_color()
-                    );
-                    return void 0;
-                  }
-                )
-              ]),
-              (button) => {
-                return toList([text("Click me!")]);
-              }
-            )
-          ]);
-        }
+        toList([
+          div(
+            toList([
+              class$("p-2 bg-green-200 select-none"),
+              onclick(
+                (_) => {
+                  println("Button clicked!");
+                  println(
+                    "Any javascript can be executed here: " + random_color()
+                  );
+                  return void 0;
+                }
+              )
+            ]),
+            toList([text("Click me!")])
+          )
+        ])
       );
     }
   );

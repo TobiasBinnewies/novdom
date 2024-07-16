@@ -17,10 +17,9 @@ pub fn main() {
   let counter = state.create(1)
 
   // parent component
-  use parent <- div([class("p-5")])
-  [
-    {
-      use button <- div([
+  div([class("p-5")], [
+    div(
+      [
         class("p-2 bg-green-200 select-none"),
         onclick(fn(_) {
           io.println("Button clicked!")
@@ -28,49 +27,39 @@ pub fn main() {
           state.update(counter, state.value(counter) + 1)
           Nil
         }),
-      ])
-
+      ],
       // button children
-      [text("current value: " <> "nothind")]
-    },
-    {
-      state_component.if1(boolean, fn(value) { value }, [
-        {
-          use button <- div([class("p-2 bg-green-200 select-none")])
-
+      [text("current value: " <> "nothind")],
+    ),
+    state_component.if1(boolean, fn(value) { value }, [
+      {
+        div(
+          [class("p-2 bg-green-200 select-none")],
           // button children
-          [text("current value: " <> "nothind")]
-        },
-      ])
-    },
-    {
-      state_component.ternary1(
-        boolean,
-        fn(value) { value },
-        [
-          {
-            use button <- div([class("p-2 bg-yellow-200 select-none")])
-
-            // button children
-            [text("current value: " <> "nothind")]
-          },
-        ],
-        [
-          {
-            use button <- div([class("p-2 bg-blue-200 select-none")])
-
-            // button children
-            [text("current value: " <> "nothind")]
-          },
-        ],
-      )
-    },
-    {
-      state_component.utilize(counter, fn(value) {
-        [
-          text("current value: " <> int.to_string(value))
-        ]
-      })
-    }
-  ]
+          [text("current value: " <> "nothind")],
+        )
+      },
+    ]),
+    state_component.ternary1(
+      boolean,
+      fn(value) { value },
+      [
+        div(
+          [class("p-2 bg-yellow-200 select-none")],
+          // button children
+          [text("current value: " <> "nothind")],
+        ),
+      ],
+      [
+        div(
+          [class("p-2 bg-blue-200 select-none")],
+          // button children
+          [text("current value: " <> "nothind")],
+        ),
+      ],
+    ),
+    state_component.utilize(counter, fn(value) {
+      [text("current value: " <> int.to_string(value))]
+    }),
+  ])
 }

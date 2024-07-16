@@ -144,7 +144,7 @@ function add_to_viewport(comp, id) {
   const viewport = document.getElementById(id);
   viewport.appendChild(elem);
 }
-function get_element(comp) {
+function get_element(comp, children_comp) {
   if (comp.id === TEXT) {
     return comp.tag;
   }
@@ -159,6 +159,8 @@ function get_element(comp) {
   }
   const elem = document.createElement(comp.tag);
   elem.setAttribute("id", comp.id);
+  const children = children_comp.toArray().map(get_element);
+  elem.replaceChildren(...children);
   add_to_unrendered(elem);
   return elem;
 }
@@ -256,6 +258,12 @@ function get_component_id_from_state_param_id(id) {
   return window.state_parameter_map.get(id);
 }
 
+// build/dev/javascript/gleam_stdlib/gleam/function.mjs
+function tap(arg, effect) {
+  effect(arg);
+  return arg;
+}
+
 // build/dev/javascript/novdom/utils_ffi.mjs
 function create_id() {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 12).padStart(12, 0);
@@ -272,17 +280,15 @@ var Component = class extends CustomType {
 function get_component(id) {
   return new Component(id, "");
 }
-function empty_component(tag) {
-  let id = create_id();
-  let comp = new Component(id, tag);
-  get_element(new Component(id, tag));
-  return comp;
-}
 function component(tag, children) {
-  let comp = empty_component(tag);
-  let children$1 = children(comp);
-  set_children(comp, children$1);
-  return comp;
+  let _pipe = create_id();
+  let _pipe$1 = new Component(_pipe, tag);
+  return tap(
+    _pipe$1,
+    (_capture) => {
+      return get_element(_capture, children);
+    }
+  );
 }
 var text_tag = "_TEXT_";
 function text(value2) {
@@ -482,9 +488,7 @@ function if1(state, when, then$) {
 // build/dev/javascript/novdom/novdom/state_component.mjs
 var state_component_tag = "_STATE_COMPONENT_";
 function if12(state, when, then$) {
-  let _pipe = component(state_component_tag, (_) => {
-    return then$;
-  });
+  let _pipe = component(state_component_tag, then$);
   return set_parameters(
     _pipe,
     toList([if1(state, when, toList([hidden()]))])
@@ -492,18 +496,14 @@ function if12(state, when, then$) {
 }
 function ternary1(state, when, then$, otherwise) {
   let then$1 = (() => {
-    let _pipe = component(state_component_tag, (_) => {
-      return then$;
-    });
+    let _pipe = component(state_component_tag, then$);
     return set_parameters(
       _pipe,
       toList([if1(state, when, toList([hidden()]))])
     );
   })();
   let otherwise$1 = (() => {
-    let _pipe = component(state_component_tag, (_) => {
-      return otherwise;
-    });
+    let _pipe = component(state_component_tag, otherwise);
     return set_parameters(
       _pipe,
       toList([
@@ -517,22 +517,17 @@ function ternary1(state, when, then$, otherwise) {
       ])
     );
   })();
-  return component(
-    state_component_tag,
-    (_) => {
-      return toList([then$1, otherwise$1]);
-    }
-  );
+  return component(state_component_tag, toList([then$1, otherwise$1]));
 }
 function utilize(state, do$) {
-  let comp = empty_component(state_component_tag);
+  let children = do$(value(state));
+  let comp = component(state_component_tag, children);
   let callback = (a) => {
     let _pipe = comp;
     set_children(_pipe, do$(a));
     return void 0;
   };
   listen(state, callback);
-  callback(value(state));
   return comp;
 }
 
@@ -544,68 +539,58 @@ function main() {
       let counter = create(1);
       return div(
         toList([class$("p-5")]),
-        (parent) => {
-          return toList([
-            div(
-              toList([
-                class$("p-2 bg-green-200 select-none"),
-                onclick(
-                  (_) => {
-                    println("Button clicked!");
-                    update2(boolean, !value(boolean));
-                    update2(counter, value(counter) + 1);
-                    return void 0;
-                  }
-                )
-              ]),
-              (button) => {
-                return toList([text("current value: nothind")]);
-              }
-            ),
-            if12(
-              boolean,
-              (value2) => {
-                return value2;
-              },
-              toList([
-                div(
-                  toList([class$("p-2 bg-green-200 select-none")]),
-                  (button) => {
-                    return toList([text("current value: nothind")]);
-                  }
-                )
-              ])
-            ),
-            ternary1(
-              boolean,
-              (value2) => {
-                return value2;
-              },
-              toList([
-                div(
-                  toList([class$("p-2 bg-yellow-200 select-none")]),
-                  (button) => {
-                    return toList([text("current value: nothind")]);
-                  }
-                )
-              ]),
-              toList([
-                div(
-                  toList([class$("p-2 bg-blue-200 select-none")]),
-                  (button) => {
-                    return toList([text("current value: nothind")]);
-                  }
-                )
-              ])
-            ),
-            utilize(
-              counter,
-              (value2) => {
-                return toList([text("current value: " + to_string(value2))]);
-              }
-            )
-          ]);
-        }
+        toList([
+          div(
+            toList([
+              class$("p-2 bg-green-200 select-none"),
+              onclick(
+                (_) => {
+                  println("Button clicked!");
+                  update2(boolean, !value(boolean));
+                  update2(counter, value(counter) + 1);
+                  return void 0;
+                }
+              )
+            ]),
+            toList([text("current value: nothind")])
+          ),
+          if12(
+            boolean,
+            (value2) => {
+              return value2;
+            },
+            toList([
+              div(
+                toList([class$("p-2 bg-green-200 select-none")]),
+                toList([text("current value: nothind")])
+              )
+            ])
+          ),
+          ternary1(
+            boolean,
+            (value2) => {
+              return value2;
+            },
+            toList([
+              div(
+                toList([class$("p-2 bg-yellow-200 select-none")]),
+                toList([text("current value: nothind")])
+              )
+            ]),
+            toList([
+              div(
+                toList([class$("p-2 bg-blue-200 select-none")]),
+                toList([text("current value: nothind")])
+              )
+            ])
+          ),
+          utilize(
+            counter,
+            (value2) => {
+              return toList([text("current value: " + to_string(value2))]);
+            }
+          )
+        ])
       );
     }
   );

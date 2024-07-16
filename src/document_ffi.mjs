@@ -30,7 +30,7 @@ export function clear_viewport(id) {
 
 // ------------------------------- ELEMENT --------------------------------
 
-export function get_element(comp) {
+export function get_element(comp, children_comp) {
   if (comp.id === TEXT) {
     return comp.tag
   }
@@ -45,9 +45,10 @@ export function get_element(comp) {
   }
   const elem = document.createElement(comp.tag)
   elem.setAttribute("id", comp.id)
-  // attributes.toArray().forEach((attr) => elem.setAttribute(attr[0], attr[1]))
-  // children.toArray().forEach((child) => elem.appendChild(child))
-  // listeners.toArray().forEach((listener) => elem.addEventListener(listener[0], listener[1]))
+
+  const children = children_comp.toArray().map(get_element)
+  elem.replaceChildren(...children)
+
   add_to_unrendered(elem)
   return elem
 }
