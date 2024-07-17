@@ -1,8 +1,7 @@
 import gleam/list
-import novdom/component.{get_component}
 import novdom/internals/parameter.{
-  type Parameter, Attribute, Listener, StateParameter, remove_parameters,
-  set_parameters,
+  type Parameter, Attribute, Listener, ParameterContainer, get_component,
+  remove_parameters, set_parameters,
 }
 import novdom/internals/utils.{unique_id}
 import novdom/state.{type State, listen, value}
@@ -19,7 +18,6 @@ pub fn if1(
   let callback = fn(a) {
     let component =
       state_param_id
-      |> get_component_id
       |> get_component
     case when(a) {
       True -> set_parameters(component, then)
@@ -34,7 +32,7 @@ pub fn if1(
     False -> []
   }
 
-  StateParameter(state_param_id, initial)
+  ParameterContainer(state_param_id, initial)
 }
 
 pub fn if2(
@@ -50,7 +48,6 @@ pub fn if2(
   let callback = fn(a, b) {
     let component =
       state_param_id
-      |> get_component_id
       |> get_component
     case when(a, b) {
       True -> set_parameters(component, then)
@@ -76,7 +73,7 @@ pub fn if2(
     False -> []
   }
 
-  StateParameter(state_param_id, initial)
+  ParameterContainer(state_param_id, initial)
 }
 
 pub fn ternary1(
@@ -93,7 +90,6 @@ pub fn ternary1(
   let callback = fn(a) {
     let component =
       state_param_id
-      |> get_component_id
       |> get_component
     case when(a) {
       True -> {
@@ -116,7 +112,7 @@ pub fn ternary1(
     False -> otherwise
   }
 
-  StateParameter(state_param_id, initial)
+  ParameterContainer(state_param_id, initial)
 }
 
 pub fn utilize(state: State(a), do: fn(a) -> List(Parameter)) -> Parameter {
@@ -124,7 +120,6 @@ pub fn utilize(state: State(a), do: fn(a) -> List(Parameter)) -> Parameter {
   let callback = fn(a) {
     let component =
       state_param_id
-      |> get_component_id
       |> get_component
     let old = get_last_state_parameter_value(state_param_id)
     let new = do(a)
@@ -140,7 +135,7 @@ pub fn utilize(state: State(a), do: fn(a) -> List(Parameter)) -> Parameter {
   let initial = do(value(state))
   set_last_state_parameter_value(state_param_id, initial)
 
-  StateParameter(state_param_id, initial)
+  ParameterContainer(state_param_id, initial)
 }
 
 fn check(params: List(Parameter)) -> Nil {
@@ -151,9 +146,6 @@ fn check(params: List(Parameter)) -> Nil {
     _ -> panic as "Only attributes and listeners are allowed"
   }
 }
-
-@external(javascript, "../document_ffi.mjs", "get_component_id_from_state_param_id")
-pub fn get_component_id(state_param_id: String) -> String
 
 @external(javascript, "../document_ffi.mjs", "set_last_state_parameter_value")
 fn set_last_state_parameter_value(

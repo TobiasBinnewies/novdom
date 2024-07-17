@@ -7,9 +7,11 @@ const HTML = "_HTML_"
 
 export function init() {
   window.state_map = new Map() // state_id: String => value: a
-  window.state_parameter_map = new Map() // state_param_id: String => component_id: String
+  window.parameter_component_map = new Map() // param_id: String => component_id: String
   window.state_parameter_last_value_map = new Map() // state_param_id: String => last_value: List(Parameter)
   window.state_listener = new Map()
+
+  window.reference_map = new Map() // reference_id: String => type: String
 }
 
 function add_to_unrendered(elem) {
@@ -24,7 +26,7 @@ export function add_to_viewport(comp, id) {
 
 export function clear_viewport(id) {
   const viewport = document.getElementById(id)
-      viewport.replaceChildren()
+  viewport.replaceChildren()
 }
 
 // ------------------------------- ELEMENT --------------------------------
@@ -69,6 +71,17 @@ export function create_copy(comp, new_id) {
 //   elem.innerText = text
 //   return comp
 // }
+
+// ------------------------------- PARAMETER --------------------------------
+
+export function add_parameter(comp, param_id) {
+  window.parameter_component_map.set(param_id, comp.id)
+  return comp
+}
+
+export function get_component_id(id) {
+  return window.parameter_component_map.get(id)
+}
 
 // ------------------------------- ATTRIBUTES --------------------------------
 
@@ -247,15 +260,6 @@ export function add_state_listener(id, callback) {
   window.state_listener.set(id, [callback, ...current])
 }
 
-export function add_state_parameter(comp, state_param_id) {
-  window.state_parameter_map.set(state_param_id, comp.id)
-  return comp
-}
-
-export function get_component_id_from_state_param_id(id) {
-  return window.state_parameter_map.get(id)
-}
-
 export function set_last_state_parameter_value(id, value) {
   window.state_parameter_last_value_map.set(id, value)
 }
@@ -264,6 +268,26 @@ export function get_last_state_parameter_value(id) {
   return window.state_parameter_last_value_map.get(id)
 }
 
+// ------------------------------- REFERENCE --------------------------------
+
+export function add_reference(ref, type) {
+  window.reference_map.set(ref.id, type.constructor.name)
+}
+
+export function read_reference(ref) {
+  const type = window.reference_map.get(ref.id)
+  const elem_id = window.parameter_component_map.get(ref.id)
+  const elem = document.getElementById(elem_id)
+  if (type === "InnerHTML") {
+    return elem.innerHTML
+  }
+  if (type === "Value") {
+    if (elem.value !== undefined) {
+      return elem.value
+    }
+    throw new Error("read_reference: value not found")
+  }
+}
 
 // ------------------------------- OTHER --------------------------------
 

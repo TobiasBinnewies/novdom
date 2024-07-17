@@ -1,11 +1,10 @@
 import gleam/option.{type Option, None, Some}
 import novdom/attribute.{style}
 import novdom/component.{
-  type Component, component, copy, document, drag_component, get_component,
-  set_children,
+  type Component, component, copy, document, drag_component, set_children,
 }
 import novdom/internals/parameter.{
-  type Event, type Parameter, ParameterContainer, StateParameter, set_parameters,
+  type Event, type Parameter, ParameterContainer, get_component, set_parameters,
 }
 import novdom/internals/utils
 import novdom/listener.{
@@ -14,7 +13,6 @@ import novdom/listener.{
 import novdom/render.{add_to_viewport, clear_viewport}
 import novdom/state.{type State}
 import novdom/state_component
-import novdom/state_parameter.{get_component_id}
 
 const drag_event_id = "_DRAGGABLE_"
 
@@ -73,12 +71,12 @@ pub fn ondrag(
 
   let drag_id = utils.unique_id()
 
-  StateParameter(drag_id, [
+  ParameterContainer(drag_id, [
     onmousedown(fn(_) {
       let preview =
         case preview_type {
           Preview(preview) -> [preview |> copy()]
-          Self -> [get_component_id(drag_id) |> get_component() |> copy()]
+          Self -> [drag_id |> get_component |> copy]
         }
         |> component(drag_event_id, _)
         |> set_parameters([
@@ -116,7 +114,7 @@ pub fn ondrop(
     }
   })
 
-  ParameterContainer([
+  ParameterContainer("", [
     onemouseover(fn(_) {
       case state.value(drag_event) {
         Some(DragEvent(value, preview, cleanup, cancel, droppable)) -> {

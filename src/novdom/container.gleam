@@ -1,7 +1,7 @@
+import gleam/list
 import novdom/attribute.{style}
 import novdom/component.{type Component}
 import novdom/html.{div}
-import gleam/list
 
 const stack_tag = "_STACK_"
 

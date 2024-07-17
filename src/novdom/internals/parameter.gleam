@@ -1,5 +1,5 @@
 import gleam/list
-import novdom/component.{type Component}
+import novdom/component.{type Component, get_component as get_comp}
 
 pub type Event
 
@@ -9,9 +9,8 @@ pub type Parameter {
 
   /// *WARNING:* Cannot return modifier
   Modifier(name: String, callback: fn(fn() -> Nil) -> List(Parameter))
-  StateParameter(id: String, initial: List(Parameter))
 
-  ParameterContainer(List(Parameter))
+  ParameterContainer(id: String, List(Parameter))
 }
 
 pub fn set_parameters(
@@ -25,12 +24,11 @@ pub fn set_parameters(
       Attribute(key, value) -> add_attribute(component, key, value)
       Listener(name, callback) -> add_listener(component, name, callback)
       Modifier(name, callback) -> todo as "Implement add_modifier"
-      StateParameter(id, initial) -> {
+      ParameterContainer(id, params) -> {
         component
-        |> add_state_parameter(id)
-        |> set_parameters(initial)
+        |> add_component_id(id)
+        |> set_parameters(params)
       }
-      ParameterContainer(params) -> set_parameters(component, params)
     }
   }
   component
@@ -50,6 +48,12 @@ pub fn remove_parameters(
     }
   }
   component
+}
+
+pub fn get_component(param_id: String) -> Component {
+  param_id
+  |> get_component_id
+  |> get_comp
 }
 
 @external(javascript, "../../document_ffi.mjs", "add_attribute")
@@ -76,5 +80,8 @@ pub fn remove_listener(
   callback: fn(Event) -> Nil,
 ) -> Component
 
-@external(javascript, "../../document_ffi.mjs", "add_state_parameter")
-pub fn add_state_parameter(comp: Component, id: String) -> Component
+@external(javascript, "../../document_ffi.mjs", "add_parameter")
+fn add_component_id(comp: Component, id: String) -> Component
+
+@external(javascript, "../../document_ffi.mjs", "get_component_id")
+fn get_component_id(param_id: String) -> String
