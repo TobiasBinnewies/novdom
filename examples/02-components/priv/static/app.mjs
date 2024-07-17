@@ -46,9 +46,6 @@ var List = class {
     return length2;
   }
 };
-function prepend(element, tail) {
-  return new NonEmpty(element, tail);
-}
 function toList(elements, tail) {
   return List.fromArray(elements, tail);
 }
@@ -106,42 +103,6 @@ var MAX_INDEX_NODE = BUCKET_SIZE / 2;
 var MIN_ARRAY_NODE = BUCKET_SIZE / 4;
 
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
-function do_reverse(loop$remaining, loop$accumulator) {
-  while (true) {
-    let remaining = loop$remaining;
-    let accumulator = loop$accumulator;
-    if (remaining.hasLength(0)) {
-      return accumulator;
-    } else {
-      let item = remaining.head;
-      let rest$1 = remaining.tail;
-      loop$remaining = rest$1;
-      loop$accumulator = prepend(item, accumulator);
-    }
-  }
-}
-function reverse(xs) {
-  return do_reverse(xs, toList([]));
-}
-function do_map(loop$list, loop$fun, loop$acc) {
-  while (true) {
-    let list = loop$list;
-    let fun = loop$fun;
-    let acc = loop$acc;
-    if (list.hasLength(0)) {
-      return reverse(acc);
-    } else {
-      let x = list.head;
-      let xs = list.tail;
-      loop$list = xs;
-      loop$fun = fun;
-      loop$acc = prepend(fun(x), acc);
-    }
-  }
-}
-function map(list, fun) {
-  return do_map(list, fun, toList([]));
-}
 function fold(loop$list, loop$initial, loop$fun) {
   while (true) {
     let list = loop$list;
@@ -219,11 +180,6 @@ function add_attribute(comp, name, value2) {
   handle_attribute(elem, name, value2, false);
   return comp;
 }
-function remove_attribute(comp, name, value2) {
-  const elem = get_element(comp);
-  handle_attribute(elem, name, value2, true);
-  return comp;
-}
 function handle_attribute(elem, name, value2, remove) {
   if (value2 === "" || value2.length === 0) {
     elem.removeAttribute(name);
@@ -267,11 +223,6 @@ function add_listener(comp, name, callback) {
   elem.addEventListener(name, callback);
   return comp;
 }
-function remove_listener(comp, name, callback) {
-  const elem = get_element(comp);
-  elem.removeEventListener(name, callback);
-  return comp;
-}
 function set_children(comp, children_comp) {
   const elem = get_element(comp);
   const children = children_comp.toArray().map(get_element);
@@ -296,9 +247,6 @@ function add_state_listener(id, callback) {
 function add_state_parameter(comp, state_param_id) {
   window.state_parameter_map.set(state_param_id, comp.id);
   return comp;
-}
-function get_component_id_from_state_param_id(id) {
-  return window.state_parameter_map.get(id);
 }
 function store_mouse_position(e) {
   const drag = document.getElementById("_drag_");
@@ -330,9 +278,6 @@ function document2() {
 }
 function drag_component() {
   return new Component("_drag_", "");
-}
-function get_component(id) {
-  return new Component(id, "");
 }
 function component(tag, children) {
   let _pipe = create_id();
@@ -385,32 +330,6 @@ var StateParameter = class extends CustomType {
     this.initial = initial;
   }
 };
-function remove_parameters(component2, params) {
-  each(
-    params,
-    (param) => {
-      if (param instanceof Attribute) {
-        let key = param.name;
-        let value2 = param.value;
-        return remove_attribute(component2, key, value2);
-      } else if (param instanceof Listener) {
-        let name = param.name;
-        let callback = param.callback;
-        return remove_listener(component2, name, callback);
-      } else {
-        throw makeError(
-          "panic",
-          "novdom/internals/parameter",
-          49,
-          "",
-          "Can only remove attributes and listeners",
-          {}
-        );
-      }
-    }
-  );
-  return component2;
-}
 function set_parameters(component2, params) {
   each(
     params,
@@ -469,9 +388,6 @@ function style(values) {
   );
   return new Attribute("style", res);
 }
-function hidden() {
-  return new Attribute("hidden", "hidden");
-}
 
 // build/dev/javascript/novdom/novdom/html.mjs
 var div_tag = "div";
@@ -489,89 +405,123 @@ var Left = class extends CustomType {
 };
 var Right = class extends CustomType {
 };
-var Center = class extends CustomType {
+var Gap = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
 };
-var TopLeft = class extends CustomType {
+var NoSpacing = class extends CustomType {
 };
-var TopRight = class extends CustomType {
+var EvenSpacing = class extends CustomType {
 };
-var BottomLeft = class extends CustomType {
+var BetweenSpacing = class extends CustomType {
 };
-function zstack(alignment, children) {
-  let position = (() => {
-    if (alignment instanceof Top) {
-      return toList([["left", "50%"], ["transform", "translateX(-50%)"]]);
-    } else if (alignment instanceof Bottom) {
-      return toList([
-        ["left", "50%"],
-        ["bottom", "0"],
-        ["transform", "translateX(-50%)"]
-      ]);
-    } else if (alignment instanceof Left) {
-      return toList([["top", "50%"], ["transform", "translateY(-50%)"]]);
-    } else if (alignment instanceof Right) {
-      return toList([
-        ["top", "50%"],
-        ["right", "0"],
-        ["transform", "translateY(-50%)"]
-      ]);
-    } else if (alignment instanceof Center) {
-      return toList([
-        ["top", "50%"],
-        ["left", "50%"],
-        ["transform", "translate(-50%, -50%)"]
-      ]);
-    } else if (alignment instanceof TopLeft) {
-      return toList([]);
-    } else if (alignment instanceof TopRight) {
-      return toList([["right", "0"]]);
-    } else if (alignment instanceof BottomLeft) {
-      return toList([["bottom", "0"]]);
+var VerticalDirection = class extends CustomType {
+};
+var VerticalScroll = class extends CustomType {
+};
+var HorizontalScroll = class extends CustomType {
+};
+var Scroll = class extends CustomType {
+};
+var NoScroll = class extends CustomType {
+};
+function stack(direction, alignment, spacing, scrolling, children) {
+  let spacing$1 = (() => {
+    if (spacing instanceof Gap) {
+      let value2 = spacing[0];
+      return ["gap", value2];
+    } else if (spacing instanceof NoSpacing) {
+      return ["gap", "0"];
+    } else if (spacing instanceof EvenSpacing) {
+      return ["justify-content", "space-evenly"];
+    } else if (spacing instanceof BetweenSpacing) {
+      return ["justify-content", "space-between"];
     } else {
-      return toList([["bottom", "0"], ["right", "0"]]);
+      return ["justify-content", "space-around"];
     }
   })();
-  let children$1 = map(
-    children,
-    (c) => {
-      return div(
-        toList([
-          style(
-            prepend(
-              ["position", "absolute"],
-              prepend(
-                ["min-width", "max-content"],
-                prepend(
-                  ["min-height", "max-content"],
-                  prepend(["overflow", "hidden"], position)
-                )
-              )
-            )
-          )
-        ]),
-        toList([c])
-      );
+  let $ = (() => {
+    if (direction instanceof VerticalDirection) {
+      return [
+        "column",
+        (() => {
+          if (alignment instanceof Left) {
+            return "flex-start";
+          } else if (alignment instanceof Right) {
+            return "flex-end";
+          } else {
+            return "center";
+          }
+        })()
+      ];
+    } else {
+      return [
+        "row",
+        (() => {
+          if (alignment instanceof Top) {
+            return "flex-start";
+          } else if (alignment instanceof Bottom) {
+            return "flex-end";
+          } else {
+            return "center";
+          }
+        })()
+      ];
     }
-  );
-  return div(
+  })();
+  let direction$1 = $[0];
+  let align = $[1];
+  let overflow = (() => {
+    if (scrolling instanceof VerticalScroll) {
+      return ["overflow-y", "auto"];
+    } else if (scrolling instanceof HorizontalScroll) {
+      return ["overflow-x", "auto"];
+    } else if (scrolling instanceof Scroll) {
+      return ["overflow", "auto"];
+    } else {
+      return ["overflow", "hidden"];
+    }
+  })();
+  let align$1 = div(
     toList([
       style(
         toList([
-          ["display", "block"],
-          ["position", "relative"],
           ["height", "100%"],
-          ["width", "100%"]
+          ["width", "100%"],
+          ["display", "flex"],
+          ["flex-direction", direction$1],
+          ["align-items", align],
+          overflow,
+          spacing$1
         ])
       )
     ]),
-    children$1
+    children
+  );
+  return align$1;
+}
+function vstack(alignment, spacing, children) {
+  let align = (() => {
+    if (alignment instanceof Left) {
+      return "flex-start";
+    } else if (alignment instanceof Right) {
+      return "flex-end";
+    } else {
+      return "center";
+    }
+  })();
+  return stack(
+    new VerticalDirection(),
+    alignment,
+    spacing,
+    new NoScroll(),
+    children
   );
 }
 
 // build/dev/javascript/novdom/novdom/listener.mjs
-function onclick(callback) {
-  return new Listener("click", callback);
-}
 function onmousemove(callback) {
   return new Listener("mousemove", callback);
 }
@@ -608,74 +558,8 @@ function listen(state, callback) {
   return add_state_listener(state.state_id, callback);
 }
 
-// build/dev/javascript/novdom/novdom/state_parameter.mjs
-function check(params) {
-  return each(
-    params,
-    (param) => {
-      if (param instanceof Attribute) {
-        return void 0;
-      } else if (param instanceof Listener) {
-        return void 0;
-      } else {
-        throw makeError(
-          "panic",
-          "novdom/state_parameter",
-          151,
-          "",
-          "Only attributes and listeners are allowed",
-          {}
-        );
-      }
-    }
-  );
-}
-function if1(state, when, then$) {
-  check(then$);
-  let state_param_id = create_id();
-  let callback = (a) => {
-    let component2 = (() => {
-      let _pipe = state_param_id;
-      let _pipe$1 = get_component_id_from_state_param_id(_pipe);
-      return get_component(_pipe$1);
-    })();
-    let $ = when(a);
-    if ($) {
-      set_parameters(component2, then$);
-    } else {
-      remove_parameters(component2, then$);
-    }
-    return void 0;
-  };
-  listen(state, callback);
-  let initial = (() => {
-    let $ = when(value(state));
-    if ($) {
-      return then$;
-    } else {
-      return toList([]);
-    }
-  })();
-  return new StateParameter(state_param_id, initial);
-}
-
 // build/dev/javascript/novdom/novdom/state_component.mjs
 var state_component_tag = "_STATE_COMPONENT_";
-function if12(state, when, then$) {
-  let _pipe = component(state_component_tag, then$);
-  return set_parameters(
-    _pipe,
-    toList([
-      if1(
-        state,
-        (a) => {
-          return !when(a);
-        },
-        toList([hidden()])
-      )
-    ])
-  );
-}
 function utilize(state, do$) {
   let children = do$(value(state));
   let comp = component(state_component_tag, children);
@@ -750,39 +634,41 @@ function main() {
   return start(
     () => {
       let state = create("Hello, world!");
-      return zstack(
+      return vstack(
         new Right(),
+        new Gap("20px"),
         toList([
           div(
-            toList([class$("p-10 bg-green-100 select-none")]),
+            toList([class$("p-5 bg-blue-100 select-none")]),
             toList([text("Hello, world!")])
           ),
           div(
-            toList([
-              class$("p-5 bg-blue-100 select-none"),
-              onclick((_) => {
-                return update(state, "NEW");
-              })
-            ]),
+            toList([class$("p-5 bg-blue-100 select-none")]),
             toList([text("Hello, world!")])
           ),
-          utilize(
-            state,
-            (value2) => {
-              return toList([text(value2)]);
-            }
+          div(
+            toList([class$("p-5 bg-blue-100 select-none")]),
+            toList([text("Hello, world!")])
           ),
-          if12(
-            state,
-            (v) => {
-              return v === "Hello, world!";
-            },
-            toList([
-              div(
-                toList([class$("p-5 bg-red-100 select-none")]),
-                toList([text("Hello, world!")])
-              )
-            ])
+          div(
+            toList([class$("p-5 bg-blue-100 select-none")]),
+            toList([text("Hello, world!")])
+          ),
+          div(
+            toList([class$("p-5 bg-blue-100 select-none")]),
+            toList([text("Hello, world!")])
+          ),
+          div(
+            toList([class$("p-5 bg-blue-100 select-none")]),
+            toList([text("Hello, world!")])
+          ),
+          div(
+            toList([class$("p-5 bg-blue-100 select-none")]),
+            toList([text("Hello, world!")])
+          ),
+          div(
+            toList([class$("p-5 bg-blue-100 select-none")]),
+            toList([text("Hello, world!")])
           )
         ])
       );
