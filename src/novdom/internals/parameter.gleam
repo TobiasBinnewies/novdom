@@ -10,6 +10,8 @@ pub type Parameter {
   /// *WARNING:* Cannot return modifier
   Modifier(name: String, callback: fn(fn() -> Nil) -> List(Parameter))
   StateParameter(id: String, initial: List(Parameter))
+
+  ParameterContainer(List(Parameter))
 }
 
 pub fn set_parameters(
@@ -28,6 +30,7 @@ pub fn set_parameters(
         |> add_state_parameter(id)
         |> set_parameters(initial)
       }
+      ParameterContainer(params) -> set_parameters(component, params)
     }
   }
   component

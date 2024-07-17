@@ -153,7 +153,7 @@ fn check(params: List(Parameter)) -> Nil {
 }
 
 @external(javascript, "../document_ffi.mjs", "get_component_id_from_state_param_id")
-fn get_component_id(state_param_id: String) -> String
+pub fn get_component_id(state_param_id: String) -> String
 
 @external(javascript, "../document_ffi.mjs", "set_last_state_parameter_value")
 fn set_last_state_parameter_value(

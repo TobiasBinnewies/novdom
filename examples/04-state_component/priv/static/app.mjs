@@ -84,6 +84,16 @@ function makeError(variant, module, line, fn, message, extra) {
   return error;
 }
 
+// build/dev/javascript/gleam_stdlib/gleam/option.mjs
+var Some = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var None = class extends CustomType {
+};
+
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
 function each(loop$list, loop$f) {
   while (true) {
@@ -144,6 +154,9 @@ function add_to_viewport(comp, id) {
   viewport.appendChild(elem);
 }
 function get_element(comp, children_comp) {
+  if (comp.id === "document") {
+    return document;
+  }
   if (comp.id === HTML) {
     const html = document.createElement(HTML);
     html.insertAdjacentHTML("beforeend", comp.tag);
@@ -190,12 +203,12 @@ function handle_attribute(elem, name, value2, remove) {
       });
       return;
     case "style":
-      value2.split(";").forEach((style) => {
-        if (!style.includes(":")) {
-          elem.style.setProperty(style, "");
+      value2.split(";").forEach((style2) => {
+        if (!style2.includes(":")) {
+          elem.style.setProperty(style2, "");
           return;
         }
-        const split3 = style.split(":");
+        const split3 = style2.split(":");
         if (remove) {
           elem.style.removeProperty(split3[0]);
           return;
@@ -250,6 +263,11 @@ function add_state_parameter(comp, state_param_id) {
 function get_component_id_from_state_param_id(id) {
   return window.state_parameter_map.get(id);
 }
+function store_mouse_position(e) {
+  const drag = document.getElementById("_drag_");
+  drag.style.setProperty("--mouse-x", e.clientX + "px");
+  drag.style.setProperty("--mouse-y", e.clientY + "px");
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/function.mjs
 function tap(arg, effect) {
@@ -270,6 +288,12 @@ var Component = class extends CustomType {
     this.tag = tag;
   }
 };
+function document2() {
+  return new Component("document", "");
+}
+function drag_component() {
+  return new Component("_drag_", "");
+}
 function get_component(id) {
   return new Component(id, "");
 }
@@ -340,7 +364,7 @@ function remove_parameters(component2, params) {
         throw makeError(
           "panic",
           "novdom/internals/parameter",
-          46,
+          49,
           "",
           "Can only remove attributes and listeners",
           {}
@@ -368,17 +392,20 @@ function set_parameters(component2, params) {
         throw makeError(
           "todo",
           "novdom/internals/parameter",
-          25,
+          27,
           "",
           "Implement add_modifier",
           {}
         );
-      } else {
+      } else if (param instanceof StateParameter) {
         let id = param.id;
         let initial = param.initial;
         let _pipe = component2;
         let _pipe$1 = add_state_parameter(_pipe, id);
         return set_parameters(_pipe$1, initial);
+      } else {
+        let params$1 = param[0];
+        return set_parameters(component2, params$1);
       }
     }
   );
@@ -393,23 +420,15 @@ function hidden() {
   return new Attribute("hidden", "hidden");
 }
 
-// build/dev/javascript/novdom/novdom/framework.mjs
-function start(component2) {
-  init();
-  let _pipe = component2();
-  return add_to_viewport(_pipe, "_app_");
-}
-
-// build/dev/javascript/novdom/novdom/html.mjs
-var div_tag = "div";
-function div(parameters, children) {
-  let _pipe = component(div_tag, children);
-  return set_parameters(_pipe, parameters);
-}
-
 // build/dev/javascript/novdom/novdom/listener.mjs
 function onclick(callback) {
   return new Listener("click", callback);
+}
+function onmousemove(callback) {
+  return new Listener("mousemove", callback);
+}
+function onmouseup(callback) {
+  return new Listener("mouseup", callback);
 }
 
 // build/dev/javascript/novdom/novdom/state.mjs
@@ -419,12 +438,19 @@ var State = class extends CustomType {
     this.state_id = state_id;
   }
 };
+function from_id(id) {
+  return new State(id);
+}
 function value(state) {
   return get_state(state.state_id);
 }
-function create(init2) {
+function create(init3) {
   let id = create_id();
-  set_state(id, init2);
+  set_state(id, init3);
+  return new State(id);
+}
+function create_with_id(id, init3) {
+  set_state(id, init3);
   return new State(id);
 }
 function update2(state, new$2) {
@@ -529,6 +555,70 @@ function utilize(state, do$) {
   };
   listen(state, callback);
   return comp;
+}
+
+// build/dev/javascript/novdom/novdom/motion.mjs
+var drag_event_id = "_DRAGGABLE_";
+function cleanup() {
+  let state = from_id(drag_event_id);
+  return () => {
+    return update2(state, new None());
+  };
+}
+function init2() {
+  let drag_event = create_with_id(drag_event_id, new None());
+  let _pipe = document2();
+  set_parameters(
+    _pipe,
+    toList([
+      onmouseup(
+        (_) => {
+          let $ = value(drag_event);
+          if ($ instanceof Some && !$[0].droppable) {
+            let event = $[0];
+            return event.cancel(event, cleanup());
+          } else {
+            return void 0;
+          }
+        }
+      ),
+      onmousemove((e) => {
+        return store_mouse_position(e);
+      })
+    ])
+  );
+  let _pipe$1 = drag_component();
+  return set_children(
+    _pipe$1,
+    toList([
+      utilize(
+        drag_event,
+        (event) => {
+          if (event instanceof None) {
+            return toList([]);
+          } else {
+            let event$1 = event[0];
+            return toList([event$1.preview]);
+          }
+        }
+      )
+    ])
+  );
+}
+
+// build/dev/javascript/novdom/novdom/framework.mjs
+function start(component2) {
+  init();
+  init2();
+  let _pipe = component2();
+  return add_to_viewport(_pipe, "_app_");
+}
+
+// build/dev/javascript/novdom/novdom/html.mjs
+var div_tag = "div";
+function div(parameters, children) {
+  let _pipe = component(div_tag, children);
+  return set_parameters(_pipe, parameters);
 }
 
 // build/dev/javascript/app/app.mjs

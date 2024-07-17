@@ -13,6 +13,14 @@ pub opaque type Component {
   // TextContainer(id: ComponentId, attributes: List(Attribute), value: String)
 }
 
+pub fn document() -> Component {
+  Component("document", "")
+}
+
+pub fn drag_component() -> Component {
+  Component("_drag_", "")
+}
+
 pub fn get_component(id: ComponentId) -> Component {
   Component(id, "")
 }

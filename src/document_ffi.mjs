@@ -30,9 +30,9 @@ export function clear_viewport(id) {
 // ------------------------------- ELEMENT --------------------------------
 
 export function get_element(comp, children_comp) {
-  // if (comp.id === TEXT) {
-  //   return comp.tag
-  // }
+  if (comp.id === "document") {
+    return document
+  }
   if (comp.id === HTML) {
     const html = document.createElement(HTML)
     html.insertAdjacentHTML("beforeend", comp.tag)
@@ -266,6 +266,13 @@ export function get_last_state_parameter_value(id) {
 
 
 // ------------------------------- OTHER --------------------------------
+
+export function store_mouse_position(e) {
+  const drag = document.getElementById("_drag_")
+  drag.style.setProperty("--mouse-x", e.clientX + "px")
+  drag.style.setProperty("--mouse-y", e.clientY + "px")
+}
+
 export class Ok {
   constructor(value) {
     this[0] = value
