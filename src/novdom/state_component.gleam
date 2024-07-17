@@ -12,7 +12,7 @@ pub fn if1(
   then: List(Component),
 ) -> Component {
   component(state_component_tag, then)
-  |> set_parameters([state_parameter.if1(state, when, [hidden()])])
+  |> set_parameters([state_parameter.if1(state, fn(a) {!when(a)}, [hidden()])])
 }
 
 // pub fn if1(
@@ -44,12 +44,12 @@ pub fn ternary1(
 ) -> Component {
   let then =
     component(state_component_tag, then)
-    |> set_parameters([state_parameter.if1(state, when, [hidden()])])
+    |> set_parameters([state_parameter.if1(state, fn(a) { !when(a) }, [hidden()])])
 
   let otherwise =
     component(state_component_tag, otherwise)
     |> set_parameters([
-      state_parameter.if1(state, fn(a) { !when(a) }, [hidden()]),
+      state_parameter.if1(state, when, [hidden()]),
     ])
 
   component(state_component_tag, [then, otherwise])

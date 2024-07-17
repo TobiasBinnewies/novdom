@@ -1,7 +1,8 @@
 import gleam/option.{type Option, None, Some}
 import novdom/attribute.{style}
 import novdom/component.{
-  type Component, component, get_component, copy, document, drag_component, set_children,
+  type Component, component, copy, document, drag_component, get_component,
+  set_children,
 }
 import novdom/internals/parameter.{
   type Event, type Parameter, ParameterContainer, StateParameter, set_parameters,

@@ -517,19 +517,20 @@ function if12(state, when, then$) {
   let _pipe = component(state_component_tag, then$);
   return set_parameters(
     _pipe,
-    toList([if1(state, when, toList([hidden()]))])
+    toList([
+      if1(
+        state,
+        (a) => {
+          return !when(a);
+        },
+        toList([hidden()])
+      )
+    ])
   );
 }
 function ternary1(state, when, then$, otherwise) {
   let then$1 = (() => {
     let _pipe = component(state_component_tag, then$);
-    return set_parameters(
-      _pipe,
-      toList([if1(state, when, toList([hidden()]))])
-    );
-  })();
-  let otherwise$1 = (() => {
-    let _pipe = component(state_component_tag, otherwise);
     return set_parameters(
       _pipe,
       toList([
@@ -541,6 +542,13 @@ function ternary1(state, when, then$, otherwise) {
           toList([hidden()])
         )
       ])
+    );
+  })();
+  let otherwise$1 = (() => {
+    let _pipe = component(state_component_tag, otherwise);
+    return set_parameters(
+      _pipe,
+      toList([if1(state, when, toList([hidden()]))])
     );
   })();
   return component(state_component_tag, toList([then$1, otherwise$1]));
@@ -594,11 +602,11 @@ function init2() {
       utilize(
         drag_event,
         (event) => {
-          if (event instanceof None) {
-            return toList([]);
-          } else {
+          if (event instanceof Some) {
             let event$1 = event[0];
             return toList([event$1.preview]);
+          } else {
+            return toList([]);
           }
         }
       )
