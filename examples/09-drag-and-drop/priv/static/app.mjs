@@ -1052,9 +1052,10 @@ function debug(term) {
 var HTML = "_HTML_";
 function init() {
   window.state_map = /* @__PURE__ */ new Map();
-  window.state_parameter_map = /* @__PURE__ */ new Map();
+  window.parameter_component_map = /* @__PURE__ */ new Map();
   window.state_parameter_last_value_map = /* @__PURE__ */ new Map();
   window.state_listener = /* @__PURE__ */ new Map();
+  window.reference_map = /* @__PURE__ */ new Map();
 }
 function add_to_unrendered(elem) {
   document.getElementById("_unrendered_").appendChild(elem);
@@ -1094,6 +1095,13 @@ function create_copy(comp, new_id) {
   copy2.setAttribute("id", new_id);
   add_to_unrendered(copy2);
   return { id: new_id, tag: comp.tag };
+}
+function add_parameter(comp, param_id) {
+  window.parameter_component_map.set(param_id, comp.id);
+  return comp;
+}
+function get_component_id(id) {
+  return window.parameter_component_map.get(id);
 }
 function add_attribute(comp, name, value2) {
   const elem = get_element(comp);
@@ -1163,13 +1171,6 @@ function get_state(id) {
 function add_state_listener(id, callback) {
   let current = window.state_listener.get(id) || [];
   window.state_listener.set(id, [callback, ...current]);
-}
-function add_state_parameter(comp, state_param_id) {
-  window.state_parameter_map.set(state_param_id, comp.id);
-  return comp;
-}
-function get_component_id_from_state_param_id(id) {
-  return window.state_parameter_map.get(id);
 }
 function store_mouse_position(e) {
   const drag = document.getElementById("_drag_");
@@ -1253,17 +1254,11 @@ var Modifier = class extends CustomType {
     this.callback = callback;
   }
 };
-var StateParameter = class extends CustomType {
-  constructor(id, initial) {
+var ParameterContainer = class extends CustomType {
+  constructor(id, x1) {
     super();
     this.id = id;
-    this.initial = initial;
-  }
-};
-var ParameterContainer = class extends CustomType {
-  constructor(x0) {
-    super();
-    this[0] = x0;
+    this[1] = x1;
   }
 };
 function set_parameters(component2, params) {
@@ -1284,24 +1279,26 @@ function set_parameters(component2, params) {
         throw makeError(
           "todo",
           "novdom/internals/parameter",
-          27,
+          26,
           "",
           "Implement add_modifier",
           {}
         );
-      } else if (param instanceof StateParameter) {
-        let id = param.id;
-        let initial = param.initial;
-        let _pipe = component2;
-        let _pipe$1 = add_state_parameter(_pipe, id);
-        return set_parameters(_pipe$1, initial);
       } else {
-        let params$1 = param[0];
-        return set_parameters(component2, params$1);
+        let id = param.id;
+        let params$1 = param[1];
+        let _pipe = component2;
+        let _pipe$1 = add_parameter(_pipe, id);
+        return set_parameters(_pipe$1, params$1);
       }
     }
   );
   return component2;
+}
+function get_component2(param_id) {
+  let _pipe = param_id;
+  let _pipe$1 = get_component_id(_pipe);
+  return get_component(_pipe$1);
 }
 
 // build/dev/javascript/novdom/novdom/attribute.mjs
@@ -1403,7 +1400,7 @@ var drag_event_id = "_DRAGGABLE_";
 function ondrag(preview_type, value2, on_drag, on_cancel, on_drop) {
   let drag_event = from_id(drag_event_id);
   let drag_id = create_id();
-  return new StateParameter(
+  return new ParameterContainer(
     drag_id,
     toList([
       onmousedown(
@@ -1421,8 +1418,8 @@ function ondrag(preview_type, value2, on_drag, on_cancel, on_drop) {
               } else {
                 return toList([
                   (() => {
-                    let _pipe2 = get_component_id_from_state_param_id(drag_id);
-                    let _pipe$12 = get_component(_pipe2);
+                    let _pipe2 = drag_id;
+                    let _pipe$12 = get_component2(_pipe2);
                     return copy(_pipe$12);
                   })()
                 ]);
@@ -1515,6 +1512,7 @@ function ondrop(on_drag, on_hover, on_drop) {
     }
   );
   return new ParameterContainer(
+    "",
     toList([
       onemouseover(
         (_) => {

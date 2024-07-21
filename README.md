@@ -64,14 +64,19 @@ Use [lustre_dev_tools](https://hexdocs.pm/lustre_dev_tools/index.html) for build
     }
 
     eg:
-    use ListStateItem(value) <- state_component.map(State(List(value))) --> List(Component)
+    use ListStateItem(value) <- state_list.map(State(List(value))) --> List(Component)
     
     // value: ListStateItem(a), new_value: a, index: Int
-    state.remove(value)
-    state.move(value, index)
-    state.insert_before(value, new_value)
-    state.insert_after(value, new_value)
-    state.replace(value, new_value)
+    state_list.remove(value)
+    state_list.move(value, index)
+    state_list.insert_before(value, new_value)
+    state_list.insert_after(value, new_value)
+    state_list.replace(value, new_value)
+
+
+    onrender()
+    offrender()
+
     <!-- state.hide(value)
     state.show(value) -->
     

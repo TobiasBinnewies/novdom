@@ -1,6 +1,4 @@
-import novdom/internals/parameter.{
-  type Parameter, ParameterContainer, get_component,
-}
+import novdom/internals/parameter.{type Parameter, ParameterContainer}
 import novdom/internals/utils
 
 pub type ReferenceType {

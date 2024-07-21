@@ -1,7 +1,7 @@
 import novdom/attribute.{class}
 import novdom/component.{text}
 import novdom/container.{
-  AroundSpacing, Center, EvenSpacing, Gap, Right, Top, hstack, vstack, zstack, vscroll
+  AroundSpacing, Center, EvenSpacing, Gap, Right, Left, Top, hstack, vstack, zstack, vscroll
 }
 import novdom/framework
 import novdom/html.{div}
@@ -43,7 +43,7 @@ pub fn main() {
   //     ]),
   // ])
 
-  vscroll(Right, Gap("20px"), [
+  vscroll(Left, Gap("20px"), [
     div([class("p-5 bg-blue-100 select-none")], [
       // simple text component
       text("Hello, world!"),

@@ -141,9 +141,10 @@ function println(string) {
 var HTML = "_HTML_";
 function init() {
   window.state_map = /* @__PURE__ */ new Map();
-  window.state_parameter_map = /* @__PURE__ */ new Map();
+  window.parameter_component_map = /* @__PURE__ */ new Map();
   window.state_parameter_last_value_map = /* @__PURE__ */ new Map();
   window.state_listener = /* @__PURE__ */ new Map();
+  window.reference_map = /* @__PURE__ */ new Map();
 }
 function add_to_unrendered(elem) {
   document.getElementById("_unrendered_").appendChild(elem);
@@ -176,6 +177,13 @@ function get_element(comp, children_comp) {
   }
   add_to_unrendered(elem);
   return elem;
+}
+function add_parameter(comp, param_id) {
+  window.parameter_component_map.set(param_id, comp.id);
+  return comp;
+}
+function get_component_id(id) {
+  return window.parameter_component_map.get(id);
 }
 function add_attribute(comp, name, value2) {
   const elem = get_element(comp);
@@ -256,13 +264,6 @@ function add_state_listener(id, callback) {
   let current = window.state_listener.get(id) || [];
   window.state_listener.set(id, [callback, ...current]);
 }
-function add_state_parameter(comp, state_param_id) {
-  window.state_parameter_map.set(state_param_id, comp.id);
-  return comp;
-}
-function get_component_id_from_state_param_id(id) {
-  return window.state_parameter_map.get(id);
-}
 function store_mouse_position(e) {
   const drag = document.getElementById("_drag_");
   drag.style.setProperty("--mouse-x", e.clientX + "px");
@@ -341,11 +342,11 @@ var Modifier = class extends CustomType {
     this.callback = callback;
   }
 };
-var StateParameter = class extends CustomType {
-  constructor(id, initial) {
+var ParameterContainer = class extends CustomType {
+  constructor(id, x1) {
     super();
     this.id = id;
-    this.initial = initial;
+    this[1] = x1;
   }
 };
 function remove_parameters(component2, params) {
@@ -364,7 +365,7 @@ function remove_parameters(component2, params) {
         throw makeError(
           "panic",
           "novdom/internals/parameter",
-          49,
+          47,
           "",
           "Can only remove attributes and listeners",
           {}
@@ -392,24 +393,26 @@ function set_parameters(component2, params) {
         throw makeError(
           "todo",
           "novdom/internals/parameter",
-          27,
+          26,
           "",
           "Implement add_modifier",
           {}
         );
-      } else if (param instanceof StateParameter) {
-        let id = param.id;
-        let initial = param.initial;
-        let _pipe = component2;
-        let _pipe$1 = add_state_parameter(_pipe, id);
-        return set_parameters(_pipe$1, initial);
       } else {
-        let params$1 = param[0];
-        return set_parameters(component2, params$1);
+        let id = param.id;
+        let params$1 = param[1];
+        let _pipe = component2;
+        let _pipe$1 = add_parameter(_pipe, id);
+        return set_parameters(_pipe$1, params$1);
       }
     }
   );
   return component2;
+}
+function get_component2(param_id) {
+  let _pipe = param_id;
+  let _pipe$1 = get_component_id(_pipe);
+  return get_component(_pipe$1);
 }
 
 // build/dev/javascript/novdom/novdom/attribute.mjs
@@ -473,7 +476,7 @@ function check(params) {
         throw makeError(
           "panic",
           "novdom/state_parameter",
-          151,
+          146,
           "",
           "Only attributes and listeners are allowed",
           {}
@@ -488,8 +491,7 @@ function if1(state, when, then$) {
   let callback = (a) => {
     let component2 = (() => {
       let _pipe = state_param_id;
-      let _pipe$1 = get_component_id_from_state_param_id(_pipe);
-      return get_component(_pipe$1);
+      return get_component2(_pipe);
     })();
     let $ = when(a);
     if ($) {
@@ -508,7 +510,7 @@ function if1(state, when, then$) {
       return toList([]);
     }
   })();
-  return new StateParameter(state_param_id, initial);
+  return new ParameterContainer(state_param_id, initial);
 }
 
 // build/dev/javascript/novdom/novdom/state_component.mjs

@@ -84,6 +84,16 @@ function makeError(variant, module, line, fn, message, extra) {
   return error;
 }
 
+// build/dev/javascript/gleam_stdlib/gleam/option.mjs
+var Some = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var None = class extends CustomType {
+};
+
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
 function each(loop$list, loop$f) {
   while (true) {
@@ -120,13 +130,13 @@ function println(string) {
 }
 
 // build/dev/javascript/novdom/document_ffi.mjs
-var TEXT = "_TEXT_";
 var HTML = "_HTML_";
 function init() {
   window.state_map = /* @__PURE__ */ new Map();
-  window.state_parameter_map = /* @__PURE__ */ new Map();
+  window.parameter_component_map = /* @__PURE__ */ new Map();
   window.state_parameter_last_value_map = /* @__PURE__ */ new Map();
   window.state_listener = /* @__PURE__ */ new Map();
+  window.reference_map = /* @__PURE__ */ new Map();
 }
 function add_to_unrendered(elem) {
   document.getElementById("_unrendered_").appendChild(elem);
@@ -136,9 +146,9 @@ function add_to_viewport(comp, id) {
   const viewport = document.getElementById(id);
   viewport.appendChild(elem);
 }
-function get_element(comp) {
-  if (comp.id === TEXT) {
-    return comp.tag;
+function get_element(comp, children_comp) {
+  if (comp.id === "document") {
+    return document;
   }
   if (comp.id === HTML) {
     const html = document.createElement(HTML);
@@ -151,8 +161,21 @@ function get_element(comp) {
   }
   const elem = document.createElement(comp.tag);
   elem.setAttribute("id", comp.id);
+  try {
+    const children = children_comp.toArray().map(get_element);
+    elem.replaceChildren(...children);
+  } catch (_) {
+    elem.textContent = children_comp;
+  }
   add_to_unrendered(elem);
   return elem;
+}
+function add_parameter(comp, param_id) {
+  window.parameter_component_map.set(param_id, comp.id);
+  return comp;
+}
+function get_component_id(id) {
+  return window.parameter_component_map.get(id);
 }
 function add_attribute(comp, name, value2) {
   const elem = get_element(comp);
@@ -180,25 +203,18 @@ function handle_attribute(elem, name, value2, remove) {
       });
       return;
     case "style":
-      value2.split(";").forEach((style) => {
-        if (!style.includes(":")) {
-          elem.style.setProperty(style, "");
+      value2.split(";").forEach((style2) => {
+        if (!style2.includes(":")) {
+          elem.style.setProperty(style2, "");
           return;
         }
-        const split3 = style.split(":");
+        const split3 = style2.split(":");
         if (remove) {
           elem.style.removeProperty(split3[0]);
           return;
         }
         elem.style.setProperty(split3[0], split3[1].trim());
       });
-      return;
-    case "hidden":
-      if (remove) {
-        elem.hidden = false;
-        return;
-      }
-      elem.hidden = true;
       return;
     default:
       if (remove) {
@@ -240,18 +256,22 @@ function add_state_listener(id, callback) {
   let current = window.state_listener.get(id) || [];
   window.state_listener.set(id, [callback, ...current]);
 }
-function add_state_parameter(comp, state_param_id) {
-  window.state_parameter_map.set(state_param_id, comp.id);
-  return comp;
-}
-function get_component_id_from_state_param_id(id) {
-  return window.state_parameter_map.get(id);
-}
 function set_last_state_parameter_value(id, value2) {
   window.state_parameter_last_value_map.set(id, value2);
 }
 function get_last_state_parameter_value(id) {
   return window.state_parameter_last_value_map.get(id);
+}
+function store_mouse_position(e) {
+  const drag = document.getElementById("_drag_");
+  drag.style.setProperty("--mouse-x", e.clientX + "px");
+  drag.style.setProperty("--mouse-y", e.clientY + "px");
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/function.mjs
+function tap(arg, effect) {
+  effect(arg);
+  return arg;
 }
 
 // build/dev/javascript/novdom/utils_ffi.mjs
@@ -267,23 +287,35 @@ var Component = class extends CustomType {
     this.tag = tag;
   }
 };
+function document2() {
+  return new Component("document", "");
+}
+function drag_component() {
+  return new Component("_drag_", "");
+}
 function get_component(id) {
   return new Component(id, "");
 }
-function empty_component(tag) {
-  let id = create_id();
-  let comp = new Component(id, tag);
-  get_element(new Component(id, tag));
-  return comp;
-}
 function component(tag, children) {
-  let comp = empty_component(tag);
-  set_children(comp, children);
-  return comp;
+  let _pipe = create_id();
+  let _pipe$1 = new Component(_pipe, tag);
+  return tap(
+    _pipe$1,
+    (_capture) => {
+      return get_element(_capture, children);
+    }
+  );
 }
 var text_tag = "_TEXT_";
 function text(value2) {
-  return new Component(text_tag, value2);
+  let _pipe = create_id();
+  let _pipe$1 = new Component(_pipe, text_tag);
+  return tap(
+    _pipe$1,
+    (_capture) => {
+      return get_element(_capture, value2);
+    }
+  );
 }
 
 // build/dev/javascript/novdom/novdom/internals/parameter.mjs
@@ -308,11 +340,11 @@ var Modifier = class extends CustomType {
     this.callback = callback;
   }
 };
-var StateParameter = class extends CustomType {
-  constructor(id, initial) {
+var ParameterContainer = class extends CustomType {
+  constructor(id, x1) {
     super();
     this.id = id;
-    this.initial = initial;
+    this[1] = x1;
   }
 };
 function remove_parameters(component2, params) {
@@ -331,7 +363,7 @@ function remove_parameters(component2, params) {
         throw makeError(
           "panic",
           "novdom/internals/parameter",
-          46,
+          47,
           "",
           "Can only remove attributes and listeners",
           {}
@@ -359,21 +391,26 @@ function set_parameters(component2, params) {
         throw makeError(
           "todo",
           "novdom/internals/parameter",
-          25,
+          26,
           "",
           "Implement add_modifier",
           {}
         );
       } else {
         let id = param.id;
-        let initial = param.initial;
+        let params$1 = param[1];
         let _pipe = component2;
-        let _pipe$1 = add_state_parameter(_pipe, id);
-        return set_parameters(_pipe$1, initial);
+        let _pipe$1 = add_parameter(_pipe, id);
+        return set_parameters(_pipe$1, params$1);
       }
     }
   );
   return component2;
+}
+function get_component2(param_id) {
+  let _pipe = param_id;
+  let _pipe$1 = get_component_id(_pipe);
+  return get_component(_pipe$1);
 }
 
 // build/dev/javascript/novdom/novdom/attribute.mjs
@@ -381,23 +418,15 @@ function class$(value2) {
   return new Attribute("class", value2);
 }
 
-// build/dev/javascript/novdom/novdom/framework.mjs
-function start(component2) {
-  init();
-  let _pipe = component2();
-  return add_to_viewport(_pipe, "_app_");
-}
-
-// build/dev/javascript/novdom/novdom/html.mjs
-var div_tag = "div";
-function div(parameters, children) {
-  let _pipe = component(div_tag, children);
-  return set_parameters(_pipe, parameters);
-}
-
 // build/dev/javascript/novdom/novdom/listener.mjs
 function onclick(callback) {
   return new Listener("click", callback);
+}
+function onmousemove(callback) {
+  return new Listener("mousemove", callback);
+}
+function onmouseup(callback) {
+  return new Listener("mouseup", callback);
 }
 
 // build/dev/javascript/novdom/novdom/state.mjs
@@ -407,12 +436,19 @@ var State = class extends CustomType {
     this.state_id = state_id;
   }
 };
+function from_id(id) {
+  return new State(id);
+}
 function value(state) {
   return get_state(state.state_id);
 }
-function create(init2) {
+function create(init3) {
   let id = create_id();
-  set_state(id, init2);
+  set_state(id, init3);
+  return new State(id);
+}
+function create_with_id(id, init3) {
+  set_state(id, init3);
   return new State(id);
 }
 function update2(state, new$2) {
@@ -435,7 +471,7 @@ function check(params) {
         throw makeError(
           "panic",
           "novdom/state_parameter",
-          151,
+          146,
           "",
           "Only attributes and listeners are allowed",
           {}
@@ -450,8 +486,7 @@ function if1(state, when, then$) {
   let callback = (a) => {
     let component2 = (() => {
       let _pipe = state_param_id;
-      let _pipe$1 = get_component_id_from_state_param_id(_pipe);
-      return get_component(_pipe$1);
+      return get_component2(_pipe);
     })();
     let $ = when(a);
     if ($) {
@@ -470,7 +505,7 @@ function if1(state, when, then$) {
       return toList([]);
     }
   })();
-  return new StateParameter(state_param_id, initial);
+  return new ParameterContainer(state_param_id, initial);
 }
 function if2(state1, state2, when, then$) {
   check(then$);
@@ -478,8 +513,7 @@ function if2(state1, state2, when, then$) {
   let callback = (a, b) => {
     let component2 = (() => {
       let _pipe = state_param_id;
-      let _pipe$1 = get_component_id_from_state_param_id(_pipe);
-      return get_component(_pipe$1);
+      return get_component2(_pipe);
     })();
     let $ = when(a, b);
     if ($) {
@@ -507,7 +541,7 @@ function if2(state1, state2, when, then$) {
       return toList([]);
     }
   })();
-  return new StateParameter(state_param_id, initial);
+  return new ParameterContainer(state_param_id, initial);
 }
 function ternary1(state, when, then$, otherwise) {
   check(then$);
@@ -516,8 +550,7 @@ function ternary1(state, when, then$, otherwise) {
   let callback = (a) => {
     let component2 = (() => {
       let _pipe = state_param_id;
-      let _pipe$1 = get_component_id_from_state_param_id(_pipe);
-      return get_component(_pipe$1);
+      return get_component2(_pipe);
     })();
     let $ = when(a);
     if ($) {
@@ -540,15 +573,14 @@ function ternary1(state, when, then$, otherwise) {
       return otherwise;
     }
   })();
-  return new StateParameter(state_param_id, initial);
+  return new ParameterContainer(state_param_id, initial);
 }
 function utilize(state, do$) {
   let state_param_id = create_id();
   let callback = (a) => {
     let component2 = (() => {
       let _pipe2 = state_param_id;
-      let _pipe$12 = get_component_id_from_state_param_id(_pipe2);
-      return get_component(_pipe$12);
+      return get_component2(_pipe2);
     })();
     let old = get_last_state_parameter_value(state_param_id);
     let new$2 = do$(a);
@@ -561,7 +593,85 @@ function utilize(state, do$) {
   listen(state, callback);
   let initial = do$(value(state));
   set_last_state_parameter_value(state_param_id, initial);
-  return new StateParameter(state_param_id, initial);
+  return new ParameterContainer(state_param_id, initial);
+}
+
+// build/dev/javascript/novdom/novdom/state_component.mjs
+var state_component_tag = "_STATE_COMPONENT_";
+function utilize2(state, do$) {
+  let children = do$(value(state));
+  let comp = component(state_component_tag, children);
+  let callback = (a) => {
+    let _pipe = comp;
+    set_children(_pipe, do$(a));
+    return void 0;
+  };
+  listen(state, callback);
+  return comp;
+}
+
+// build/dev/javascript/novdom/novdom/motion.mjs
+var drag_event_id = "_DRAGGABLE_";
+function cleanup() {
+  let state = from_id(drag_event_id);
+  return () => {
+    return update2(state, new None());
+  };
+}
+function init2() {
+  let drag_event = create_with_id(drag_event_id, new None());
+  let _pipe = document2();
+  set_parameters(
+    _pipe,
+    toList([
+      onmouseup(
+        (_) => {
+          let $ = value(drag_event);
+          if ($ instanceof Some && !$[0].droppable) {
+            let event = $[0];
+            return event.cancel(event, cleanup());
+          } else {
+            return void 0;
+          }
+        }
+      ),
+      onmousemove((e) => {
+        return store_mouse_position(e);
+      })
+    ])
+  );
+  let _pipe$1 = drag_component();
+  return set_children(
+    _pipe$1,
+    toList([
+      utilize2(
+        drag_event,
+        (event) => {
+          if (event instanceof Some) {
+            let event$1 = event[0];
+            return toList([event$1.preview]);
+          } else {
+            return toList([]);
+          }
+        }
+      )
+    ])
+  );
+}
+
+// build/dev/javascript/novdom/novdom/framework.mjs
+function start(component2) {
+  init();
+  init2();
+  let _pipe = component2();
+  return add_to_viewport(_pipe, "_app_");
+}
+
+// build/dev/javascript/novdom/novdom/html.mjs
+var div_tag = "div";
+function div(parameters, children) {
+  let _pipe = component(div_tag, children);
+  return set_parameters(_pipe, parameters);
 }
 
 // build/dev/javascript/app/app.mjs

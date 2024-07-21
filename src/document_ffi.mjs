@@ -1,4 +1,6 @@
 // import {} from "./globals.mjs"
+import { List } from "../prelude.mjs"
+import { Hotkey, Shift, Alt, Short } from "./novdom/hotkey.mjs"
 
 const TEXT = "_TEXT_"
 const HTML = "_HTML_"
@@ -12,6 +14,10 @@ export function init() {
   window.state_listener = new Map()
 
   window.reference_map = new Map() // reference_id: String => type: String
+
+  window.hotkey_key_map = new Map() // key: Hotkey => ids: List(String)
+  window.hotkey_id_map = new Map() // id: String => keys: List(Hotkey)
+  window.hotkey_listener = new Map() // id: String => listener: Function
 }
 
 function add_to_unrendered(elem) {
@@ -289,32 +295,120 @@ export function read_reference(ref) {
   }
 }
 
+// ------------------------------- HOTKEY --------------------------------
+
+export function override_hotkey(id, key) {
+  update_hotkey_map_remove(window.hotkey_id_map.get(id) || [], id)
+  const key_string = encode_key(key)
+  window.hotkey_id_map.set(id, [key_string])
+  update_hotkey_map_add([key_string], id)
+}
+
+export function add_hotkey(id, key) {
+  const current = window.hotkey_id_map.get(id) || []
+  const key_string = encode_key(key)
+  window.hotkey_id_map.set(id, [key_string, ...current])
+  update_hotkey_map_add([key_string], id)
+}
+
+export function remove_hotkey(id, key) {
+  const current = window.hotkey_id_map.get(id) || []
+  const key_string = encode_key(key)
+  window.hotkey_id_map.set(
+    id,
+    current.filter((k) => k !== key_string)
+  )
+  update_hotkey_map_remove([key_string], id)
+}
+
+function update_hotkey_map_add(hotkeys, id) {
+  hotkeys.forEach((k) => {
+    const current = window.hotkey_key_map.get(k) || []
+    window.hotkey_key_map.set(k, [id, ...current])
+  })
+}
+
+function update_hotkey_map_remove(hotkeys, id) {
+  hotkeys.forEach((k) => {
+    const current = window.hotkey_key_map.get(k) || []
+    window.hotkey_key_map.set(
+      k,
+      current.filter((i) => i !== id)
+    )
+  })
+}
+
+export function get_hotkeys(id) {
+  return List.fromArray((window.hotkey_id_map.get(id) || []).map(decode_key))
+}
+
+export function get_hotkey_ids(key) {
+  const key_string = encode_key(key)
+  return List.fromArray(window.hotkey_key_map.get(key_string) || [])
+}
+
+function encode_key(key) {
+  let is_short = key.ctrlKey || key.metaKey
+  let is_shift = key.shiftKey
+  let is_alt = key.altKey
+  if (key.modifiers) {
+    const modifier_names = key.modifiers.toArray().map((m) => m.constructor.name)
+    is_short = modifier_names.includes("Short")
+    is_shift = modifier_names.includes("Shift")
+    is_alt = modifier_names.includes("Alt")
+  }
+  return (
+    key.code +
+    ";" +
+    (is_shift ? "Shift," : "") +
+    (is_alt ? "Alt," : "") +
+    (is_short ? "Short," : "")
+  ).slice(0, -1)
+}
+
+function decode_key(key_string) {
+  const [keycode, modifier_string] = key_string.split(";")
+  const modifiers = List.fromArray(
+    modifier_string
+      ? modifier_string.split(",").map((k) => {
+          switch (k) {
+            case "Shift":
+              return new Shift()
+            case "Alt":
+              return new Alt()
+            case "Short":
+              return new Short()
+            // case "meta":
+            //   return new Meta()
+            // case "ctrl":
+            //   return new Ctrl()
+            default:
+              throw new Error("decode_key: unknown modifier: " + k)
+          }
+        })
+      : []
+  )
+  return new Hotkey(keycode, modifiers)
+}
+
+export function keypress_callback(event) {
+  const pressed_key = encode_key(event)
+  const ids = window.hotkey_key_map.get(pressed_key) || []
+  if (ids.length === 0) {
+    return
+  }
+  event.preventDefault()
+  ids.forEach((id) => window.hotkey_listener.get(id)(event))
+}
+
+export function set_hotkey_listener(id, listener) {
+  window.hotkey_listener.set(id, listener)
+}
+
 // ------------------------------- OTHER --------------------------------
 
 export function store_mouse_position(e) {
   const drag = document.getElementById("_drag_")
   drag.style.setProperty("--mouse-x", e.clientX + "px")
   drag.style.setProperty("--mouse-y", e.clientY + "px")
-}
-
-export class Ok {
-  constructor(value) {
-    this[0] = value
-  }
-
-  // @internal
-  isOk() {
-    return true
-  }
-}
-
-export class Error {
-  constructor(detail) {
-    this[0] = detail
-  }
-
-  // @internal
-  isOk() {
-    return false
-  }
 }

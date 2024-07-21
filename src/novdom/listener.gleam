@@ -24,6 +24,10 @@ pub fn onmouseup(callback: fn(Event) -> Nil) -> Parameter {
   Listener("mouseup", callback)
 }
 
+pub fn onkeydown(callback: fn(Event) -> Nil) -> Parameter {
+  Listener("keydown", callback)
+}
+
 /// Creates a listener that will only be called once
 /// *WARNING:* If anything else than a Listener is passed, this function will panic
 pub fn once(listener: Parameter) -> Parameter {

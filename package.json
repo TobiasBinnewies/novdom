@@ -1,9 +1,12 @@
 {
   "name": "novdom",
-  "private": true,
   "version": "0.0.0",
-  "type": "module",
   "devDependencies": {
     "jsdom": "^24.1.0"
+  },
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "quill": "^2.0.2"
   }
 }
