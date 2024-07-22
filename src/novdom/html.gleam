@@ -1,5 +1,6 @@
 import novdom/component.{type Component, component}
 import novdom/internals/parameter.{type Parameter, set_parameters}
+import novdom/attribute.{style}
 
 const div_tag = "div"
 
@@ -48,4 +49,14 @@ pub fn h2(parameters: List(Parameter), children: List(Component)) -> Component {
 pub fn h3(parameters: List(Parameter), children: List(Component)) -> Component {
   component(h3_tag, children)
   |> set_parameters(parameters)
+}
+
+pub fn text(parameters: List(Parameter), value: String) -> Component {
+  component.text(value)
+  |> set_parameters(parameters)
+}
+
+pub fn textln(parameters: List(Parameter), value: String) -> Component {
+  component.text(value)
+  |> set_parameters([style([#("display", "block")]), ..parameters])
 }

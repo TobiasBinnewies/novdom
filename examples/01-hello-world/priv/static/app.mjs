@@ -119,126 +119,6 @@ function each(loop$list, loop$f) {
   }
 }
 
-// build/dev/javascript/novdom/document_ffi.mjs
-var HTML = "_HTML_";
-function init() {
-  window.state_map = /* @__PURE__ */ new Map();
-  window.parameter_component_map = /* @__PURE__ */ new Map();
-  window.state_parameter_last_value_map = /* @__PURE__ */ new Map();
-  window.state_listener = /* @__PURE__ */ new Map();
-  window.reference_map = /* @__PURE__ */ new Map();
-}
-function add_to_unrendered(elem) {
-  document.getElementById("_unrendered_").appendChild(elem);
-}
-function add_to_viewport(comp, id) {
-  const elem = get_element(comp);
-  const viewport = document.getElementById(id);
-  viewport.appendChild(elem);
-}
-function get_element(comp, children_comp) {
-  if (comp.id === "document") {
-    return document;
-  }
-  if (comp.id === HTML) {
-    const html = document.createElement(HTML);
-    html.insertAdjacentHTML("beforeend", comp.tag);
-    return html;
-  }
-  const existing = document.getElementById(comp.id);
-  if (existing) {
-    return existing;
-  }
-  const elem = document.createElement(comp.tag);
-  elem.setAttribute("id", comp.id);
-  try {
-    const children = children_comp.toArray().map(get_element);
-    elem.replaceChildren(...children);
-  } catch (_) {
-    elem.textContent = children_comp;
-  }
-  add_to_unrendered(elem);
-  return elem;
-}
-function add_parameter(comp, param_id) {
-  window.parameter_component_map.set(param_id, comp.id);
-  return comp;
-}
-function add_attribute(comp, name, value2) {
-  const elem = get_element(comp);
-  handle_attribute(elem, name, value2, false);
-  return comp;
-}
-function handle_attribute(elem, name, value2, remove) {
-  if (value2 === "" || value2.length === 0) {
-    elem.removeAttribute(name);
-    return;
-  }
-  switch (name) {
-    case "class":
-      value2.split(" ").forEach((cls) => {
-        if (remove) {
-          elem.classList.remove(cls);
-          return;
-        }
-        elem.classList.add(cls);
-      });
-      return;
-    case "style":
-      value2.split(";").forEach((style2) => {
-        if (!style2.includes(":")) {
-          elem.style.setProperty(style2, "");
-          return;
-        }
-        const split2 = style2.split(":");
-        if (remove) {
-          elem.style.removeProperty(split2[0]);
-          return;
-        }
-        elem.style.setProperty(split2[0], split2[1].trim());
-      });
-      return;
-    default:
-      if (remove) {
-        elem.removeAttribute(name);
-        return;
-      }
-      elem.setAttribute(name, value2);
-      return;
-  }
-}
-function add_listener(comp, name, callback) {
-  const elem = get_element(comp);
-  elem.addEventListener(name, callback);
-  return comp;
-}
-function set_children(comp, children_comp) {
-  const elem = get_element(comp);
-  const children = children_comp.toArray().map(get_element);
-  elem.replaceChildren(...children);
-  return comp;
-}
-function update_state(id, value2) {
-  ;
-  (window.state_listener.get(id) || []).forEach((callback) => callback(value2));
-  set_state(id, value2);
-}
-function set_state(id, value2) {
-  window.state_map.set(id, value2);
-}
-function get_state(id) {
-  return window.state_map.get(id);
-}
-function add_state_listener(id, callback) {
-  let current = window.state_listener.get(id) || [];
-  window.state_listener.set(id, [callback, ...current]);
-}
-function store_mouse_position(e) {
-  const drag = document.getElementById("_drag_");
-  drag.style.setProperty("--mouse-x", e.clientX + "px");
-  drag.style.setProperty("--mouse-y", e.clientY + "px");
-}
-
 // build/dev/javascript/gleam_stdlib/gleam/function.mjs
 function tap(arg, effect) {
   effect(arg);
@@ -284,6 +164,175 @@ function text(value2) {
       return get_element(_capture, value2);
     }
   );
+}
+
+// build/dev/javascript/novdom/novdom/listener.mjs
+function onmousemove(callback) {
+  return new Listener("mousemove", callback);
+}
+function onmouseup(callback) {
+  return new Listener("mouseup", callback);
+}
+function onkeydown(callback) {
+  return new Listener("keydown", callback);
+}
+
+// build/dev/javascript/novdom/novdom/hotkey.mjs
+function init() {
+  let _pipe = document2();
+  set_parameters(_pipe, toList([onkeydown(keypress_callback)]));
+  return void 0;
+}
+
+// build/dev/javascript/novdom/document_ffi.mjs
+var HTML = "_HTML_";
+String.prototype.smartSplit = function(separator) {
+  return this.split(separator).filter((s) => s.length > 0);
+};
+Array.prototype.toList = function() {
+  return List.fromArray(this);
+};
+function init2() {
+  window.state_map = /* @__PURE__ */ new Map();
+  window.parameter_component_map = /* @__PURE__ */ new Map();
+  window.state_parameter_last_value_map = /* @__PURE__ */ new Map();
+  window.state_listener = /* @__PURE__ */ new Map();
+  window.reference_map = /* @__PURE__ */ new Map();
+  window.hotkey_key_map = /* @__PURE__ */ new Map();
+  window.hotkey_id_map = /* @__PURE__ */ new Map();
+  window.hotkey_listener = /* @__PURE__ */ new Map();
+}
+function add_to_unrendered(elem) {
+  document.getElementById("_unrendered_").appendChild(elem);
+}
+function add_to_viewport(comp, id) {
+  const elem = get_element(comp);
+  const viewport = document.getElementById(id);
+  viewport.appendChild(elem);
+}
+function get_element(comp, children_comp) {
+  if (comp.id === "document") {
+    return document;
+  }
+  if (comp.id === HTML) {
+    const html = document.createElement(HTML);
+    html.insertAdjacentHTML("beforeend", comp.tag);
+    return html;
+  }
+  const existing = document.getElementById(comp.id);
+  if (existing) {
+    return existing;
+  }
+  const elem = document.createElement(comp.tag);
+  elem.setAttribute("id", comp.id);
+  try {
+    const children = children_comp.toArray().map(get_element);
+    elem.replaceChildren(...children);
+  } catch (_) {
+    const text3 = document.createTextNode(children_comp.replace(" ", "\xA0"));
+    elem.replaceChildren(text3);
+  }
+  add_to_unrendered(elem);
+  return elem;
+}
+function add_parameter(comp, param_id) {
+  window.parameter_component_map.set(param_id, comp.id);
+  return comp;
+}
+function add_attribute(comp, name, value2) {
+  const elem = get_element(comp);
+  handle_attribute(elem, name, value2, false);
+  return comp;
+}
+function handle_attribute(elem, name, value2, remove) {
+  if (value2 === "" || value2.length === 0) {
+    elem.removeAttribute(name);
+    return;
+  }
+  switch (name) {
+    case "class":
+      value2.smartSplit(" ").forEach((cls) => {
+        if (remove) {
+          elem.classList.remove(cls);
+          return;
+        }
+        elem.classList.add(cls);
+      });
+      return;
+    case "style":
+      value2.smartSplit(";").forEach((style2) => {
+        if (!style2.includes(":")) {
+          elem.style.setProperty(style2, "");
+          return;
+        }
+        const split2 = style2.smartSplit(":");
+        if (remove) {
+          elem.style.removeProperty(split2[0]);
+          return;
+        }
+        elem.style.setProperty(split2[0], split2[1].trim());
+      });
+      return;
+    default:
+      if (remove) {
+        elem.removeAttribute(name);
+        return;
+      }
+      elem.setAttribute(name, value2);
+      return;
+  }
+}
+function add_listener(comp, name, callback) {
+  const elem = get_element(comp);
+  elem.addEventListener(name, callback);
+  return comp;
+}
+function set_children(comp, children_comp) {
+  const elem = get_element(comp);
+  const children = children_comp.toArray().map(get_element);
+  elem.replaceChildren(...children);
+  return comp;
+}
+function update_state(id, value2) {
+  ;
+  (window.state_listener.get(id) || []).forEach((callback) => callback(value2));
+  set_state(id, value2);
+}
+function set_state(id, value2) {
+  window.state_map.set(id, value2);
+}
+function get_state(id) {
+  return window.state_map.get(id);
+}
+function add_state_listener(id, callback) {
+  let current = window.state_listener.get(id) || [];
+  window.state_listener.set(id, [callback, ...current]);
+}
+function encode_key(key) {
+  let is_short = key.ctrlKey || key.metaKey;
+  let is_shift = key.shiftKey;
+  let is_alt = key.altKey;
+  if (key.modifiers) {
+    const modifier_names = key.modifiers.toArray().map((m) => m.constructor.name);
+    is_short = modifier_names.includes("Short");
+    is_shift = modifier_names.includes("Shift");
+    is_alt = modifier_names.includes("Alt");
+  }
+  return key.code + ";" + (is_shift ? "Shift," : "") + (is_alt ? "Alt," : "") + (is_short ? "Short," : "");
+}
+function keypress_callback(event) {
+  const pressed_key = encode_key(event);
+  const ids = window.hotkey_key_map.get(pressed_key) || [];
+  if (ids.length === 0) {
+    return;
+  }
+  event.preventDefault();
+  ids.forEach((id) => window.hotkey_listener.get(id)(event));
+}
+function store_mouse_position(e) {
+  const drag = document.getElementById("_drag_");
+  drag.style.setProperty("--mouse-x", e.clientX + "px");
+  drag.style.setProperty("--mouse-y", e.clientY + "px");
 }
 
 // build/dev/javascript/novdom/novdom/internals/parameter.mjs
@@ -348,14 +397,6 @@ function class$(value2) {
   return new Attribute("class", value2);
 }
 
-// build/dev/javascript/novdom/novdom/listener.mjs
-function onmousemove(callback) {
-  return new Listener("mousemove", callback);
-}
-function onmouseup(callback) {
-  return new Listener("mouseup", callback);
-}
-
 // build/dev/javascript/novdom/novdom/state.mjs
 var State = class extends CustomType {
   constructor(state_id) {
@@ -369,8 +410,8 @@ function from_id(id) {
 function value(state) {
   return get_state(state.state_id);
 }
-function create_with_id(id, init3) {
-  set_state(id, init3);
+function create_with_id(id, init4) {
+  set_state(id, init4);
   return new State(id);
 }
 function update(state, new$2) {
@@ -402,7 +443,7 @@ function cleanup() {
     return update(state, new None());
   };
 }
-function init2() {
+function init3() {
   let drag_event = create_with_id(drag_event_id, new None());
   let _pipe = document2();
   set_parameters(
@@ -445,13 +486,18 @@ function init2() {
 
 // build/dev/javascript/novdom/novdom/framework.mjs
 function start(component2) {
-  init();
   init2();
+  init3();
+  init();
   let _pipe = component2();
   return add_to_viewport(_pipe, "_app_");
 }
 
 // build/dev/javascript/novdom/novdom/html.mjs
+function text2(parameters, value2) {
+  let _pipe = text(value2);
+  return set_parameters(_pipe, parameters);
+}
 var div_tag = "div";
 function div(parameters, children) {
   let _pipe = component(div_tag, children);
@@ -463,8 +509,18 @@ function main() {
   return start(
     () => {
       return div(
-        toList([class$("p-5 bg-blue-100 select-none")]),
-        toList([text("Hello, world!")])
+        toList([
+          class$(
+            "p-5 bg-[#272822] select-none flex justify-center items-center h-screen w-screen size-100 text-2xl font-mono"
+          )
+        ]),
+        toList([
+          text2(toList([class$("text-white")]), "<"),
+          text2(toList([class$("text-[#F82873]")]), "Hello"),
+          text2(toList([]), " "),
+          text2(toList([class$("text-[#A7E230]")]), "World"),
+          text2(toList([class$("text-white")]), "/>")
+        ])
       );
     }
   );

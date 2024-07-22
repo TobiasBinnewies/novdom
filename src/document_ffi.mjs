@@ -5,19 +5,27 @@ import { Hotkey, Shift, Alt, Short } from "./novdom/hotkey.mjs"
 const TEXT = "_TEXT_"
 const HTML = "_HTML_"
 
+String.prototype.smartSplit = function (separator) {
+  return this.split(separator).filter((s) => s.length > 0)
+}
+
+Array.prototype.toList = function () {
+  return List.fromArray(this)
+}
+
 // ------------------------------- VIEWPORT --------------------------------
 
 export function init() {
-  window.state_map = new Map() // state_id: String => value: a
-  window.parameter_component_map = new Map() // param_id: String => component_id: String
-  window.state_parameter_last_value_map = new Map() // state_param_id: String => last_value: List(Parameter)
-  window.state_listener = new Map()
+  globalThis.state_map = new Map() // state_id: String => value: a
+  globalThis.parameter_component_map = new Map() // param_id: String => component_id: String
+  globalThis.state_parameter_last_value_map = new Map() // state_param_id: String => last_value: List(Parameter)
+  globalThis.state_listener = new Map()
 
-  window.reference_map = new Map() // reference_id: String => type: String
+  globalThis.reference_map = new Map() // reference_id: String => type: String
 
-  window.hotkey_key_map = new Map() // key: Hotkey => ids: List(String)
-  window.hotkey_id_map = new Map() // id: String => keys: List(Hotkey)
-  window.hotkey_listener = new Map() // id: String => listener: Function
+  globalThis.hotkey_key_map = new Map() // key: Hotkey => ids: List(String)
+  globalThis.hotkey_id_map = new Map() // id: String => keys: List(Hotkey)
+  globalThis.hotkey_listener = new Map() // id: String => listener: Function
 }
 
 function add_to_unrendered(elem) {
@@ -58,7 +66,8 @@ export function get_element(comp, children_comp) {
     elem.replaceChildren(...children)
   } catch (_) {
     // throws if children_comp is not a list, e.g. TEXT
-    elem.textContent = children_comp
+    const text = document.createTextNode(children_comp.replace(" ", "\u00A0"))
+    elem.replaceChildren(text)
   }
   add_to_unrendered(elem)
   return elem
@@ -81,12 +90,12 @@ export function create_copy(comp, new_id) {
 // ------------------------------- PARAMETER --------------------------------
 
 export function add_parameter(comp, param_id) {
-  window.parameter_component_map.set(param_id, comp.id)
+  globalThis.parameter_component_map.set(param_id, comp.id)
   return comp
 }
 
 export function get_component_id(id) {
-  return window.parameter_component_map.get(id)
+  return globalThis.parameter_component_map.get(id)
 }
 
 // ------------------------------- ATTRIBUTES --------------------------------
@@ -124,7 +133,7 @@ function handle_attribute(elem, name, value, remove) {
   }
   switch (name) {
     case "class":
-      value.split(" ").forEach((cls) => {
+      value.smartSplit(" ").forEach((cls) => {
         if (remove) {
           elem.classList.remove(cls)
           return
@@ -133,12 +142,12 @@ function handle_attribute(elem, name, value, remove) {
       })
       return
     case "style":
-      value.split(";").forEach((style) => {
+      value.smartSplit(";").forEach((style) => {
         if (!style.includes(":")) {
           elem.style.setProperty(style, "")
           return
         }
-        const split = style.split(":")
+        const split = style.smartSplit(":")
         if (remove) {
           elem.style.removeProperty(split[0])
           return
@@ -241,48 +250,48 @@ export function move_children(from, to) {
 // ------------------------------- STATE --------------------------------
 
 export function update_state(id, value) {
-  ;(window.state_listener.get(id) || []).forEach((callback) => callback(value))
+  ;(globalThis.state_listener.get(id) || []).forEach((callback) => callback(value))
   set_state(id, value)
 }
 
 export function set_state(id, value) {
-  window.state_map.set(id, value)
+  globalThis.state_map.set(id, value)
 }
 
 export function get_state(id) {
-  return window.state_map.get(id)
+  return globalThis.state_map.get(id)
 }
 
 export function add_stateful_component(id, render) {
-  window.stateful_component_map.set(id, render)
+  globalThis.stateful_component_map.set(id, render)
 }
 
 export function get_stateful_component(id) {
-  return window.stateful_component_map.get(id)
+  return globalThis.stateful_component_map.get(id)
 }
 
 export function add_state_listener(id, callback) {
-  let current = window.state_listener.get(id) || []
-  window.state_listener.set(id, [callback, ...current])
+  let current = globalThis.state_listener.get(id) || []
+  globalThis.state_listener.set(id, [callback, ...current])
 }
 
 export function set_last_state_parameter_value(id, value) {
-  window.state_parameter_last_value_map.set(id, value)
+  globalThis.state_parameter_last_value_map.set(id, value)
 }
 
 export function get_last_state_parameter_value(id) {
-  return window.state_parameter_last_value_map.get(id)
+  return globalThis.state_parameter_last_value_map.get(id)
 }
 
 // ------------------------------- REFERENCE --------------------------------
 
 export function add_reference(ref, type) {
-  window.reference_map.set(ref.id, type.constructor.name)
+  globalThis.reference_map.set(ref.id, type.constructor.name)
 }
 
 export function read_reference(ref) {
-  const type = window.reference_map.get(ref.id)
-  const elem_id = window.parameter_component_map.get(ref.id)
+  const type = globalThis.reference_map.get(ref.id)
+  const elem_id = globalThis.parameter_component_map.get(ref.id)
   const elem = document.getElementById(elem_id)
   if (type === "InnerHTML") {
     return elem.innerHTML
@@ -298,23 +307,23 @@ export function read_reference(ref) {
 // ------------------------------- HOTKEY --------------------------------
 
 export function override_hotkey(id, key) {
-  update_hotkey_map_remove(window.hotkey_id_map.get(id) || [], id)
+  update_hotkey_map_remove(globalThis.hotkey_id_map.get(id) || [], id)
   const key_string = encode_key(key)
-  window.hotkey_id_map.set(id, [key_string])
+  globalThis.hotkey_id_map.set(id, [key_string])
   update_hotkey_map_add([key_string], id)
 }
 
 export function add_hotkey(id, key) {
-  const current = window.hotkey_id_map.get(id) || []
+  const current = globalThis.hotkey_id_map.get(id) || []
   const key_string = encode_key(key)
-  window.hotkey_id_map.set(id, [key_string, ...current])
+  globalThis.hotkey_id_map.set(id, [key_string, ...current])
   update_hotkey_map_add([key_string], id)
 }
 
 export function remove_hotkey(id, key) {
-  const current = window.hotkey_id_map.get(id) || []
+  const current = globalThis.hotkey_id_map.get(id) || []
   const key_string = encode_key(key)
-  window.hotkey_id_map.set(
+  globalThis.hotkey_id_map.set(
     id,
     current.filter((k) => k !== key_string)
   )
@@ -323,15 +332,15 @@ export function remove_hotkey(id, key) {
 
 function update_hotkey_map_add(hotkeys, id) {
   hotkeys.forEach((k) => {
-    const current = window.hotkey_key_map.get(k) || []
-    window.hotkey_key_map.set(k, [id, ...current])
+    const current = globalThis.hotkey_key_map.get(k) || []
+    globalThis.hotkey_key_map.set(k, [id, ...current])
   })
 }
 
 function update_hotkey_map_remove(hotkeys, id) {
   hotkeys.forEach((k) => {
-    const current = window.hotkey_key_map.get(k) || []
-    window.hotkey_key_map.set(
+    const current = globalThis.hotkey_key_map.get(k) || []
+    globalThis.hotkey_key_map.set(
       k,
       current.filter((i) => i !== id)
     )
@@ -339,12 +348,12 @@ function update_hotkey_map_remove(hotkeys, id) {
 }
 
 export function get_hotkeys(id) {
-  return List.fromArray((window.hotkey_id_map.get(id) || []).map(decode_key))
+  return (globalThis.hotkey_id_map.get(id) || []).map(decode_key).toList()
 }
 
 export function get_hotkey_ids(key) {
   const key_string = encode_key(key)
-  return List.fromArray(window.hotkey_key_map.get(key_string) || [])
+  return (globalThis.hotkey_key_map.get(key_string) || []).toList()
 }
 
 function encode_key(key) {
@@ -363,14 +372,14 @@ function encode_key(key) {
     (is_shift ? "Shift," : "") +
     (is_alt ? "Alt," : "") +
     (is_short ? "Short," : "")
-  ).slice(0, -1)
+  )
 }
 
 function decode_key(key_string) {
   const [keycode, modifier_string] = key_string.split(";")
-  const modifiers = List.fromArray(
+  const modifiers = (
     modifier_string
-      ? modifier_string.split(",").map((k) => {
+      ? modifier_string.smartSplit(",").map((k) => {
           switch (k) {
             case "Shift":
               return new Shift()
@@ -387,22 +396,22 @@ function decode_key(key_string) {
           }
         })
       : []
-  )
+  ).toList()
   return new Hotkey(keycode, modifiers)
 }
 
 export function keypress_callback(event) {
   const pressed_key = encode_key(event)
-  const ids = window.hotkey_key_map.get(pressed_key) || []
+  const ids = globalThis.hotkey_key_map.get(pressed_key) || []
   if (ids.length === 0) {
     return
   }
   event.preventDefault()
-  ids.forEach((id) => window.hotkey_listener.get(id)(event))
+  ids.forEach((id) => globalThis.hotkey_listener.get(id)(event))
 }
 
 export function set_hotkey_listener(id, listener) {
-  window.hotkey_listener.set(id, listener)
+  globalThis.hotkey_listener.set(id, listener)
 }
 
 // ------------------------------- OTHER --------------------------------
