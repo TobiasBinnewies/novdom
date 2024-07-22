@@ -29,10 +29,6 @@ pub fn editor(store: RichTextStore) -> Component {
   store.component
 }
 
-fn bold(store: RichTextStore) -> Nil {
-  todo
-}
-
 @external(javascript, "../quill_ffi.mjs", "init")
 fn init_quill(comp: Component) -> Quill
 

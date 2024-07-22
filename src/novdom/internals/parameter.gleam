@@ -23,7 +23,7 @@ pub fn set_parameters(
     case param {
       Attribute(key, value) -> add_attribute(component, key, value)
       Listener(name, callback) -> add_listener(component, name, callback)
-      Modifier(name, callback) -> todo as "Implement add_modifier"
+      Modifier(name, callback) -> panic as "Implement add_modifier"
       ParameterContainer(id, params) -> {
         component
         |> add_component_id(id)
