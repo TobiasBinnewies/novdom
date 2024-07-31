@@ -20,7 +20,9 @@ pub fn main() {
   div([class("p-5")], [
     div(
       [
-        class("p-2 bg-green-200 select-none hover:bg-violet-600 active:bg-yellow-700"),
+        class(
+          "p-2 bg-green-200 select-none hover:bg-violet-600 active:bg-yellow-700",
+        ),
         onclick(fn(_) {
           io.println("Button clicked!")
           state.update(boolean, !state.value(boolean))
@@ -31,29 +33,31 @@ pub fn main() {
       // button children
       [text("current value: " <> "nothind")],
     ),
-    state_component.if1(boolean, fn(value) { value }, [
+    state_component.if1(
+      boolean,
+      fn(value) { value },
       text("current value: " <> "nothind"),
-    ]),
+    ),
     state_component.ternary1(
       boolean,
       fn(value) { value },
-      [
-        div(
-          [class("p-2 bg-yellow-200 select-none")],
-          // button children
-          [text("current value: " <> "nothind"), text("current value: " <> "nothind"), text("current value: " <> "nothind")],
-        ),
-      ],
-      [
-        div(
-          [class("p-2 bg-blue-200 select-none")],
-          // button children
-          [text("current value: " <> "nothind")],
-        ),
-      ],
+      div(
+        [class("p-2 bg-yellow-200 select-none")],
+        // button children
+        [
+          text("current value: " <> "nothind"),
+          text("current value: " <> "nothind"),
+          text("current value: " <> "nothind"),
+        ],
+      ),
+      div(
+        [class("p-2 bg-blue-200 select-none")],
+        // button children
+        [text("current value: " <> "nothind")],
+      ),
     ),
     state_component.utilize(counter, fn(value) {
-      [text("current value: " <> int.to_string(value))]
+      text("current value: " <> int.to_string(value))
     }),
   ])
 }

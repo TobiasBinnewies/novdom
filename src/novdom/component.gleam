@@ -1,7 +1,9 @@
 import gleam/function
 import novdom/internals/utils
 
-const text_tag = "_TEXT_"
+const text_tag = "p"
+
+//"_TEXT_"
 
 const html_tag = "_HTML_"
 
@@ -13,12 +15,9 @@ pub opaque type Component {
   // TextContainer(id: ComponentId, attributes: List(Attribute), value: String)
 }
 
+// TODO: Remove this, add global listiner or something
 pub fn document() -> Component {
   Component("document", "")
-}
-
-pub fn drag_component() -> Component {
-  Component("_drag_", "")
 }
 
 pub fn get_component(id: ComponentId) -> Component {
@@ -57,24 +56,23 @@ fn create_text_element(comp: Component, text: String) -> Nil
 @external(javascript, "../document_ffi.mjs", "create_copy")
 fn create_copy(comp: Component, id: String) -> Component
 
-@external(javascript, "../document_ffi.mjs", "set_children")
-pub fn set_children(comp: Component, children: List(Component)) -> Component
+@external(javascript, "../document_ffi.mjs", "set_child")
+pub fn set_child(comp: Component, children: Component) -> Component
+// @external(javascript, "../document_ffi.mjs", "insert_child_at")
+// pub fn insert_child_at(comp: Component, child: Component, at: Int) -> Component
 
-@external(javascript, "../document_ffi.mjs", "insert_child_at")
-pub fn insert_child_at(comp: Component, child: Component, at: Int) -> Component
+// @external(javascript, "../document_ffi.mjs", "insert_child_before")
+// pub fn insert_child_before(
+//   comp: Component,
+//   child: Component,
+//   before_id: String,
+// ) -> Component
 
-@external(javascript, "../document_ffi.mjs", "insert_child_before")
-pub fn insert_child_before(
-  comp: Component,
-  child: Component,
-  before_id: String,
-) -> Component
+// @external(javascript, "../document_ffi.mjs", "remove_child_at")
+// pub fn remove_child_at(comp: Component, at: Int) -> Component
 
-@external(javascript, "../document_ffi.mjs", "remove_child_at")
-pub fn remove_child_at(comp: Component, at: Int) -> Component
+// @external(javascript, "../document_ffi.mjs", "remove_child")
+// pub fn remove_child(comp: Component, child: Component) -> Component
 
-@external(javascript, "../document_ffi.mjs", "remove_child")
-pub fn remove_child(comp: Component, child: Component) -> Component
-
-@external(javascript, "../document_ffi.mjs", "move_children")
-pub fn move_children(from: Component, to: Component) -> Nil
+// @external(javascript, "../document_ffi.mjs", "move_children")
+// pub fn move_children(from: Component, to: Component) -> Nil

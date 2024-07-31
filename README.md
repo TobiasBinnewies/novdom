@@ -30,13 +30,13 @@ Use [lustre_dev_tools](https://hexdocs.pm/lustre_dev_tools/index.html) for build
 ⁉️ = not sure when and how to implement
 
 - ✅ Components / Default HTML Components
-    - Keep Fn as Children?
+  - Keep Fn as Children?
 - ✅ Parameter / ⁉️ Modifier (have been postponed for now)
-    - Attributes (class, style, ... | -> value | init values) / Listener (onclick, ... | -> fn -> Nil | can change state) / Modifier (onrender, ... | -> fn -> List(Paramenter) | modify init values)
+  - Attributes (class, style, ... | -> value | init values) / Listener (onclick, ... | -> fn -> Nil | can change state) / Modifier (onrender, ... | -> fn -> List(Paramenter) | modify init values)
 - ✅ State
-    - State Parameter (Attributes / Listener that can be changed on state change)
-    - State Components (Components that can be changed on state change)
-    - 💼 State Map Function / ListState Type?? \
+  - State Parameter (Attributes / Listener that can be changed on state change)
+  - State Components (Components that can be changed on state change)
+  - 💼 State Map Function / ListState Type?? \
     eg: \
     use ListStateItem(value) <- state_list.map(State(List(value))) --> List(Component) \
     // value: ListStateItem(a), new_value: a, index: Int \
@@ -45,12 +45,23 @@ Use [lustre_dev_tools](https://hexdocs.pm/lustre_dev_tools/index.html) for build
     state_list.insert_before(value, new_value) \
     state_list.insert_after(value, new_value) \
     state_list.replace(value, new_value)
-    
 - ✅ Drag and Drop
 - 💼 Rich Text Editor
 - ❌ Router
-    - Make use of unrendered
+  - Make use of unrendered
 - ❌ Server Components
 - ❌ Resumability (like Qwik)
 
 - ⁉️ Backend (making use of Gleams compiling → Erlang / JavaScript)
+
+# Notes
+
+<!-- - ondrag / ondrop motion callbacks need to return Parameter to update the component itself without state overhead
+- if some other component need to be changed on drag / drop motion, the state should be used -->
+
+- state_components need render / unrender modifier to animate the change
+  unredner: unrender(List(Paramenter), UnrednderListener, NewRenderListener) -> Modifier
+- HOW TO HANDLE A CHANGING STATE_COMP INSIDE A STATE_COMP? (the unrender of the parent comp could be called before the child comp is unrendered)
+  --> chain listener: let chain: fn(Listener) -> Listener = chain_listener.create(),
+
+TODO: Custom HTML Tags need a display attribute otherwise transform will not work

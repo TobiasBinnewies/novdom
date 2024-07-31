@@ -7,6 +7,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "quill": "^2.0.2"
+    "quill": "^2.0.2",
+    "tailwind-merge": "^2.4.0"
   }
 }

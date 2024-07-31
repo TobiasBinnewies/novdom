@@ -193,14 +193,14 @@ Array.prototype.toList = function() {
   return List.fromArray(this);
 };
 function init2() {
-  window.state_map = /* @__PURE__ */ new Map();
-  window.parameter_component_map = /* @__PURE__ */ new Map();
-  window.state_parameter_last_value_map = /* @__PURE__ */ new Map();
-  window.state_listener = /* @__PURE__ */ new Map();
-  window.reference_map = /* @__PURE__ */ new Map();
-  window.hotkey_key_map = /* @__PURE__ */ new Map();
-  window.hotkey_id_map = /* @__PURE__ */ new Map();
-  window.hotkey_listener = /* @__PURE__ */ new Map();
+  globalThis.state_map = /* @__PURE__ */ new Map();
+  globalThis.parameter_component_map = /* @__PURE__ */ new Map();
+  globalThis.state_parameter_last_value_map = /* @__PURE__ */ new Map();
+  globalThis.state_listener = /* @__PURE__ */ new Map();
+  globalThis.reference_map = /* @__PURE__ */ new Map();
+  globalThis.hotkey_key_map = /* @__PURE__ */ new Map();
+  globalThis.hotkey_id_map = /* @__PURE__ */ new Map();
+  globalThis.hotkey_listener = /* @__PURE__ */ new Map();
 }
 function add_to_unrendered(elem) {
   document.getElementById("_unrendered_").appendChild(elem);
@@ -236,7 +236,7 @@ function get_element(comp, children_comp) {
   return elem;
 }
 function add_parameter(comp, param_id) {
-  window.parameter_component_map.set(param_id, comp.id);
+  globalThis.parameter_component_map.set(param_id, comp.id);
   return comp;
 }
 function add_attribute(comp, name, value2) {
@@ -295,18 +295,18 @@ function set_children(comp, children_comp) {
 }
 function update_state(id, value2) {
   ;
-  (window.state_listener.get(id) || []).forEach((callback) => callback(value2));
+  (globalThis.state_listener.get(id) || []).forEach((callback) => callback(value2));
   set_state(id, value2);
 }
 function set_state(id, value2) {
-  window.state_map.set(id, value2);
+  globalThis.state_map.set(id, value2);
 }
 function get_state(id) {
-  return window.state_map.get(id);
+  return globalThis.state_map.get(id);
 }
 function add_state_listener(id, callback) {
-  let current = window.state_listener.get(id) || [];
-  window.state_listener.set(id, [callback, ...current]);
+  let current = globalThis.state_listener.get(id) || [];
+  globalThis.state_listener.set(id, [callback, ...current]);
 }
 function encode_key(key) {
   let is_short = key.ctrlKey || key.metaKey;
@@ -322,12 +322,12 @@ function encode_key(key) {
 }
 function keypress_callback(event) {
   const pressed_key = encode_key(event);
-  const ids = window.hotkey_key_map.get(pressed_key) || [];
+  const ids = globalThis.hotkey_key_map.get(pressed_key) || [];
   if (ids.length === 0) {
     return;
   }
   event.preventDefault();
-  ids.forEach((id) => window.hotkey_listener.get(id)(event));
+  ids.forEach((id) => globalThis.hotkey_listener.get(id)(event));
 }
 function store_mouse_position(e) {
   const drag = document.getElementById("_drag_");
@@ -373,7 +373,7 @@ function set_parameters(component2, params) {
         let name = param.name;
         let callback = param.callback;
         throw makeError(
-          "todo",
+          "panic",
           "novdom/internals/parameter",
           26,
           "",
@@ -516,7 +516,7 @@ function main() {
         ]),
         toList([
           text2(toList([class$("text-white")]), "<"),
-          text2(toList([class$("text-[#F82873]")]), "Hello"),
+          text2(toList([class$("text-[#F82873] ")]), "Hello"),
           text2(toList([]), " "),
           text2(toList([class$("text-[#A7E230]")]), "World"),
           text2(toList([class$("text-white")]), "/>")

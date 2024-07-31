@@ -28,6 +28,14 @@ pub fn onkeydown(callback: fn(Event) -> Nil) -> Parameter {
   Listener("keydown", callback)
 }
 
+pub fn ontransitionend(callback: fn(Event) -> Nil) -> Parameter {
+  Listener("transitionend", callback)
+}
+
+pub fn ontransitionstart(callback: fn(Event) -> Nil) -> Parameter {
+  Listener("transitionstart", callback)
+}
+
 /// Creates a listener that will only be called once
 /// *WARNING:* If anything else than a Listener is passed, this function will panic
 pub fn once(listener: Parameter) -> Parameter {

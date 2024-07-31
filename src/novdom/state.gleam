@@ -1,4 +1,3 @@
-import novdom/component.{type Component, set_children}
 import novdom/internals/utils
 
 pub type State(a) {

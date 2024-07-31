@@ -1,6 +1,6 @@
+import novdom/attribute.{style}
 import novdom/component.{type Component, component}
 import novdom/internals/parameter.{type Parameter, set_parameters}
-import novdom/attribute.{style}
 
 const div_tag = "div"
 

@@ -3,12 +3,22 @@ import novdom/component.{type Component, get_component as get_comp}
 
 pub type Event
 
+pub type TriggerOption {
+  Start
+  End
+}
+
+pub type ModifierStore {
+  Render(fn() -> Nil)
+  Unrender(fn() -> Nil, TriggerOption)
+}
+
 pub type Parameter {
   Attribute(name: String, value: String)
   Listener(name: String, callback: fn(Event) -> Nil)
 
   /// *WARNING:* Cannot return modifier
-  Modifier(name: String, callback: fn(fn() -> Nil) -> List(Parameter))
+  Modifier(id: String, ModifierStore)
 
   ParameterContainer(id: String, List(Parameter))
 }
@@ -23,12 +33,24 @@ pub fn set_parameters(
     case param {
       Attribute(key, value) -> add_attribute(component, key, value)
       Listener(name, callback) -> add_listener(component, name, callback)
-      Modifier(name, callback) -> panic as "Implement add_modifier"
       ParameterContainer(id, params) -> {
         component
         |> add_component_id(id)
         |> set_parameters(params)
       }
+      Modifier(id, store) ->
+        case store {
+          Render(render_fn) -> {
+            component
+            |> add_component_id(id)
+            |> add_render(render_fn)
+          }
+          Unrender(render_fn, trigger) -> {
+            component
+            |> add_component_id(id)
+            |> add_unrender(render_fn, trigger)
+          }
+        }
     }
   }
   component
@@ -85,3 +107,13 @@ fn add_component_id(comp: Component, id: String) -> Component
 
 @external(javascript, "../../document_ffi.mjs", "get_component_id")
 fn get_component_id(param_id: String) -> String
+
+@external(javascript, "../../document_ffi.mjs", "add_render")
+fn add_render(comp: Component, callback: fn() -> Nil) -> Component
+
+@external(javascript, "../../document_ffi.mjs", "add_unrender")
+fn add_unrender(
+  comp: Component,
+  callback: fn() -> Nil,
+  trigger: TriggerOption,
+) -> Component

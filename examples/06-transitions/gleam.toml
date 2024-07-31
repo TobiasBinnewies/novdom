@@ -16,7 +16,7 @@ target = "javascript"
 [dependencies]
 gleam_stdlib = ">= 0.34.0 and < 2.0.0"
 gleam_json = "1.0.1"
-novdom = "0.1.0"
+novdom = { path = "../../../novdom" }
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

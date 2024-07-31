@@ -3,7 +3,7 @@ import novdom/internals/parameter.{
   type Parameter, Attribute, Listener, ParameterContainer, get_component,
   remove_parameters, set_parameters,
 }
-import novdom/internals/utils.{unique_id}
+import novdom/internals/utils
 import novdom/state.{type State, listen, value}
 
 pub fn if1(
@@ -13,26 +13,40 @@ pub fn if1(
 ) -> Parameter {
   check(then)
 
-  let state_param_id = unique_id()
+  let id = utils.unique_id()
 
   let callback = fn(a) {
     let component =
-      state_param_id
+      id
       |> get_component
-    case when(a) {
-      True -> set_parameters(component, then)
-      False -> remove_parameters(component, then)
+    let condition = when(a)
+    case condition, utils.get_last_value(id) {
+      True, False -> {
+        set_parameters(component, then)
+        Nil
+      }
+      False, True -> {
+        remove_parameters(component, then)
+        Nil
+      }
+      _, _ -> Nil
     }
-    Nil
+    utils.set_last_value(id, condition)
   }
   listen(state, callback)
 
   let initial = case when(value(state)) {
-    True -> then
-    False -> []
+    True -> {
+      utils.set_last_value(id, True)
+      then
+    }
+    False -> {
+      utils.set_last_value(id, False)
+      []
+    }
   }
 
-  ParameterContainer(state_param_id, initial)
+  ParameterContainer(id, initial)
 }
 
 pub fn if2(
@@ -43,17 +57,25 @@ pub fn if2(
 ) -> Parameter {
   check(then)
 
-  let state_param_id = unique_id()
+  let id = utils.unique_id()
 
   let callback = fn(a, b) {
     let component =
-      state_param_id
+      id
       |> get_component
-    case when(a, b) {
-      True -> set_parameters(component, then)
-      False -> remove_parameters(component, then)
+    let condition = when(a, b)
+    case condition, utils.get_last_value(id) {
+      True, False -> {
+        set_parameters(component, then)
+        Nil
+      }
+      False, True -> {
+        remove_parameters(component, then)
+        Nil
+      }
+      _, _ -> Nil
     }
-    Nil
+    utils.set_last_value(id, condition)
   }
 
   let callback1 = fn(a) {
@@ -69,11 +91,17 @@ pub fn if2(
   listen(state2, callback2)
 
   let initial = case when(value(state1), value(state2)) {
-    True -> then
-    False -> []
+    True -> {
+      utils.set_last_value(id, True)
+      then
+    }
+    False -> {
+      utils.set_last_value(id, False)
+      []
+    }
   }
 
-  ParameterContainer(state_param_id, initial)
+  ParameterContainer(id, initial)
 }
 
 pub fn ternary1(
@@ -85,57 +113,66 @@ pub fn ternary1(
   check(then)
   check(otherwise)
 
-  let state_param_id = unique_id()
+  let id = utils.unique_id()
 
   let callback = fn(a) {
     let component =
-      state_param_id
+      id
       |> get_component
-    case when(a) {
-      True -> {
+    let condition = when(a)
+    case condition, utils.get_last_value(id) {
+      True, False -> {
         component
         |> remove_parameters(otherwise)
         |> set_parameters(then)
+        Nil
       }
-      False -> {
+      False, True -> {
         component
         |> remove_parameters(then)
         |> set_parameters(otherwise)
+        Nil
       }
+      _, _ -> Nil
     }
-    Nil
+    utils.set_last_value(id, condition)
   }
   listen(state, callback)
 
   let initial = case when(value(state)) {
-    True -> then
-    False -> otherwise
+    True -> {
+      utils.set_last_value(id, True)
+      then
+    }
+    False -> {
+      utils.set_last_value(id, False)
+      otherwise
+    }
   }
 
-  ParameterContainer(state_param_id, initial)
+  ParameterContainer(id, initial)
 }
 
 pub fn utilize(state: State(a), do: fn(a) -> List(Parameter)) -> Parameter {
-  let state_param_id = unique_id()
+  let id = utils.unique_id()
   let callback = fn(a) {
     let component =
-      state_param_id
+      id
       |> get_component
-    let old = get_last_state_parameter_value(state_param_id)
+    let old = utils.get_last_value(id)
     let new = do(a)
     component
     |> remove_parameters(old)
     |> set_parameters(new)
 
-    set_last_state_parameter_value(state_param_id, new)
+    utils.set_last_value(id, new)
     Nil
   }
   listen(state, callback)
 
   let initial = do(value(state))
-  set_last_state_parameter_value(state_param_id, initial)
-
-  ParameterContainer(state_param_id, initial)
+  utils.set_last_value(id, initial)
+  ParameterContainer(id, initial)
 }
 
 fn check(params: List(Parameter)) -> Nil {
@@ -146,12 +183,3 @@ fn check(params: List(Parameter)) -> Nil {
     _ -> panic as "Only attributes and listeners are allowed"
   }
 }
-
-@external(javascript, "../document_ffi.mjs", "set_last_state_parameter_value")
-fn set_last_state_parameter_value(
-  state_param_id: String,
-  value: List(Parameter),
-) -> Nil
-
-@external(javascript, "../document_ffi.mjs", "get_last_state_parameter_value")
-fn get_last_state_parameter_value(state_param_id: String) -> List(Parameter)

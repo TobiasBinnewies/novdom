@@ -1,8 +1,7 @@
 import gleam/option.{type Option, None, Some}
 import novdom/attribute.{style}
-import novdom/component.{
-  type Component, component, copy, document, drag_component, set_children,
-}
+import novdom/component.{type Component, component, copy, document, set_child}
+import novdom/html.{div}
 import novdom/internals/parameter.{
   type Event, type Parameter, ParameterContainer, get_component, set_parameters,
 }
@@ -10,7 +9,7 @@ import novdom/internals/utils
 import novdom/listener.{
   onemouseover, onmousedown, onmousemove, onmouseout, onmouseup,
 }
-import novdom/render.{add_to_viewport, clear_viewport}
+import novdom/render
 import novdom/state.{type State}
 import novdom/state_component
 
@@ -49,15 +48,13 @@ pub fn init() {
     onmousemove(fn(e) { store_mouse_position(e) }),
   ])
 
-  drag_component()
-  |> set_children([
-    state_component.utilize(drag_event, fn(event) {
-      case event {
-        Some(event) -> [event.preview]
-        None -> []
-      }
-    }),
-  ])
+  state_component.utilize(drag_event, fn(event) {
+    case event {
+      Some(event) -> event.preview
+      None -> div([], [])
+    }
+  })
+  |> render.add_to_viewport("_drag_")
 }
 
 pub fn ondrag(

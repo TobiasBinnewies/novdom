@@ -73,120 +73,6 @@ var NonEmpty = class extends List {
     this.tail = tail;
   }
 };
-var BitArray = class _BitArray {
-  constructor(buffer) {
-    if (!(buffer instanceof Uint8Array)) {
-      throw "BitArray can only be constructed from a Uint8Array";
-    }
-    this.buffer = buffer;
-  }
-  // @internal
-  get length() {
-    return this.buffer.length;
-  }
-  // @internal
-  byteAt(index2) {
-    return this.buffer[index2];
-  }
-  // @internal
-  floatAt(index2) {
-    return byteArrayToFloat(this.buffer.slice(index2, index2 + 8));
-  }
-  // @internal
-  intFromSlice(start2, end) {
-    return byteArrayToInt(this.buffer.slice(start2, end));
-  }
-  // @internal
-  binaryFromSlice(start2, end) {
-    return new _BitArray(this.buffer.slice(start2, end));
-  }
-  // @internal
-  sliceAfter(index2) {
-    return new _BitArray(this.buffer.slice(index2));
-  }
-};
-var UtfCodepoint = class {
-  constructor(value2) {
-    this.value = value2;
-  }
-};
-function byteArrayToInt(byteArray) {
-  byteArray = byteArray.reverse();
-  let value2 = 0;
-  for (let i = byteArray.length - 1; i >= 0; i--) {
-    value2 = value2 * 256 + byteArray[i];
-  }
-  return value2;
-}
-function byteArrayToFloat(byteArray) {
-  return new Float64Array(byteArray.reverse().buffer)[0];
-}
-function isEqual(x, y) {
-  let values = [x, y];
-  while (values.length) {
-    let a = values.pop();
-    let b = values.pop();
-    if (a === b)
-      continue;
-    if (!isObject(a) || !isObject(b))
-      return false;
-    let unequal = !structurallyCompatibleObjects(a, b) || unequalDates(a, b) || unequalBuffers(a, b) || unequalArrays(a, b) || unequalMaps(a, b) || unequalSets(a, b) || unequalRegExps(a, b);
-    if (unequal)
-      return false;
-    const proto = Object.getPrototypeOf(a);
-    if (proto !== null && typeof proto.equals === "function") {
-      try {
-        if (a.equals(b))
-          continue;
-        else
-          return false;
-      } catch {
-      }
-    }
-    let [keys, get2] = getters(a);
-    for (let k of keys(a)) {
-      values.push(get2(a, k), get2(b, k));
-    }
-  }
-  return true;
-}
-function getters(object) {
-  if (object instanceof Map) {
-    return [(x) => x.keys(), (x, y) => x.get(y)];
-  } else {
-    let extra = object instanceof globalThis.Error ? ["message"] : [];
-    return [(x) => [...extra, ...Object.keys(x)], (x, y) => x[y]];
-  }
-}
-function unequalDates(a, b) {
-  return a instanceof Date && (a > b || a < b);
-}
-function unequalBuffers(a, b) {
-  return a.buffer instanceof ArrayBuffer && a.BYTES_PER_ELEMENT && !(a.byteLength === b.byteLength && a.every((n, i) => n === b[i]));
-}
-function unequalArrays(a, b) {
-  return Array.isArray(a) && a.length !== b.length;
-}
-function unequalMaps(a, b) {
-  return a instanceof Map && a.size !== b.size;
-}
-function unequalSets(a, b) {
-  return a instanceof Set && (a.size != b.size || [...a].some((e) => !b.has(e)));
-}
-function unequalRegExps(a, b) {
-  return a instanceof RegExp && (a.source !== b.source || a.flags !== b.flags);
-}
-function isObject(a) {
-  return typeof a === "object" && a !== null;
-}
-function structurallyCompatibleObjects(a, b) {
-  if (typeof a !== "object" && typeof b !== "object" && (!a || !b))
-    return false;
-  let nonstructural = [Promise, WeakSet, WeakMap, Function];
-  if (nonstructural.some((c) => a instanceof c))
-    return false;
-  return a.constructor === b.constructor;
-}
 
 // build/dev/javascript/gleam_stdlib/gleam/option.mjs
 var Some = class extends CustomType {
@@ -199,22 +85,6 @@ var None = class extends CustomType {
 };
 
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
-function fold(loop$list, loop$initial, loop$fun) {
-  while (true) {
-    let list = loop$list;
-    let initial = loop$initial;
-    let fun = loop$fun;
-    if (list.hasLength(0)) {
-      return initial;
-    } else {
-      let x = list.head;
-      let rest$1 = list.tail;
-      loop$list = rest$1;
-      loop$initial = fun(initial, x);
-      loop$fun = fun;
-    }
-  }
-}
 function each(loop$list, loop$f) {
   while (true) {
     let list = loop$list;
@@ -231,811 +101,22 @@ function each(loop$list, loop$f) {
   }
 }
 
-// build/dev/javascript/gleam_stdlib/gleam/string_builder.mjs
-function to_string2(builder) {
-  return identity(builder);
-}
-
 // build/dev/javascript/gleam_stdlib/dict.mjs
-var referenceMap = /* @__PURE__ */ new WeakMap();
 var tempDataView = new DataView(new ArrayBuffer(8));
-var referenceUID = 0;
-function hashByReference(o) {
-  const known = referenceMap.get(o);
-  if (known !== void 0) {
-    return known;
-  }
-  const hash = referenceUID++;
-  if (referenceUID === 2147483647) {
-    referenceUID = 0;
-  }
-  referenceMap.set(o, hash);
-  return hash;
-}
-function hashMerge(a, b) {
-  return a ^ b + 2654435769 + (a << 6) + (a >> 2) | 0;
-}
-function hashString(s) {
-  let hash = 0;
-  const len = s.length;
-  for (let i = 0; i < len; i++) {
-    hash = Math.imul(31, hash) + s.charCodeAt(i) | 0;
-  }
-  return hash;
-}
-function hashNumber(n) {
-  tempDataView.setFloat64(0, n);
-  const i = tempDataView.getInt32(0);
-  const j = tempDataView.getInt32(4);
-  return Math.imul(73244475, i >> 16 ^ i) ^ j;
-}
-function hashBigInt(n) {
-  return hashString(n.toString());
-}
-function hashObject(o) {
-  const proto = Object.getPrototypeOf(o);
-  if (proto !== null && typeof proto.hashCode === "function") {
-    try {
-      const code = o.hashCode(o);
-      if (typeof code === "number") {
-        return code;
-      }
-    } catch {
-    }
-  }
-  if (o instanceof Promise || o instanceof WeakSet || o instanceof WeakMap) {
-    return hashByReference(o);
-  }
-  if (o instanceof Date) {
-    return hashNumber(o.getTime());
-  }
-  let h = 0;
-  if (o instanceof ArrayBuffer) {
-    o = new Uint8Array(o);
-  }
-  if (Array.isArray(o) || o instanceof Uint8Array) {
-    for (let i = 0; i < o.length; i++) {
-      h = Math.imul(31, h) + getHash(o[i]) | 0;
-    }
-  } else if (o instanceof Set) {
-    o.forEach((v) => {
-      h = h + getHash(v) | 0;
-    });
-  } else if (o instanceof Map) {
-    o.forEach((v, k) => {
-      h = h + hashMerge(getHash(v), getHash(k)) | 0;
-    });
-  } else {
-    const keys = Object.keys(o);
-    for (let i = 0; i < keys.length; i++) {
-      const k = keys[i];
-      const v = o[k];
-      h = h + hashMerge(getHash(v), hashString(k)) | 0;
-    }
-  }
-  return h;
-}
-function getHash(u) {
-  if (u === null)
-    return 1108378658;
-  if (u === void 0)
-    return 1108378659;
-  if (u === true)
-    return 1108378657;
-  if (u === false)
-    return 1108378656;
-  switch (typeof u) {
-    case "number":
-      return hashNumber(u);
-    case "string":
-      return hashString(u);
-    case "bigint":
-      return hashBigInt(u);
-    case "object":
-      return hashObject(u);
-    case "symbol":
-      return hashByReference(u);
-    case "function":
-      return hashByReference(u);
-    default:
-      return 0;
-  }
-}
 var SHIFT = 5;
 var BUCKET_SIZE = Math.pow(2, SHIFT);
 var MASK = BUCKET_SIZE - 1;
 var MAX_INDEX_NODE = BUCKET_SIZE / 2;
 var MIN_ARRAY_NODE = BUCKET_SIZE / 4;
-var ENTRY = 0;
-var ARRAY_NODE = 1;
-var INDEX_NODE = 2;
-var COLLISION_NODE = 3;
-var EMPTY = {
-  type: INDEX_NODE,
-  bitmap: 0,
-  array: []
-};
-function mask(hash, shift) {
-  return hash >>> shift & MASK;
-}
-function bitpos(hash, shift) {
-  return 1 << mask(hash, shift);
-}
-function bitcount(x) {
-  x -= x >> 1 & 1431655765;
-  x = (x & 858993459) + (x >> 2 & 858993459);
-  x = x + (x >> 4) & 252645135;
-  x += x >> 8;
-  x += x >> 16;
-  return x & 127;
-}
-function index(bitmap, bit) {
-  return bitcount(bitmap & bit - 1);
-}
-function cloneAndSet(arr, at, val) {
-  const len = arr.length;
-  const out = new Array(len);
-  for (let i = 0; i < len; ++i) {
-    out[i] = arr[i];
-  }
-  out[at] = val;
-  return out;
-}
-function spliceIn(arr, at, val) {
-  const len = arr.length;
-  const out = new Array(len + 1);
-  let i = 0;
-  let g = 0;
-  while (i < at) {
-    out[g++] = arr[i++];
-  }
-  out[g++] = val;
-  while (i < len) {
-    out[g++] = arr[i++];
-  }
-  return out;
-}
-function spliceOut(arr, at) {
-  const len = arr.length;
-  const out = new Array(len - 1);
-  let i = 0;
-  let g = 0;
-  while (i < at) {
-    out[g++] = arr[i++];
-  }
-  ++i;
-  while (i < len) {
-    out[g++] = arr[i++];
-  }
-  return out;
-}
-function createNode(shift, key1, val1, key2hash, key2, val2) {
-  const key1hash = getHash(key1);
-  if (key1hash === key2hash) {
-    return {
-      type: COLLISION_NODE,
-      hash: key1hash,
-      array: [
-        { type: ENTRY, k: key1, v: val1 },
-        { type: ENTRY, k: key2, v: val2 }
-      ]
-    };
-  }
-  const addedLeaf = { val: false };
-  return assoc(
-    assocIndex(EMPTY, shift, key1hash, key1, val1, addedLeaf),
-    shift,
-    key2hash,
-    key2,
-    val2,
-    addedLeaf
-  );
-}
-function assoc(root, shift, hash, key, val, addedLeaf) {
-  switch (root.type) {
-    case ARRAY_NODE:
-      return assocArray(root, shift, hash, key, val, addedLeaf);
-    case INDEX_NODE:
-      return assocIndex(root, shift, hash, key, val, addedLeaf);
-    case COLLISION_NODE:
-      return assocCollision(root, shift, hash, key, val, addedLeaf);
-  }
-}
-function assocArray(root, shift, hash, key, val, addedLeaf) {
-  const idx = mask(hash, shift);
-  const node = root.array[idx];
-  if (node === void 0) {
-    addedLeaf.val = true;
-    return {
-      type: ARRAY_NODE,
-      size: root.size + 1,
-      array: cloneAndSet(root.array, idx, { type: ENTRY, k: key, v: val })
-    };
-  }
-  if (node.type === ENTRY) {
-    if (isEqual(key, node.k)) {
-      if (val === node.v) {
-        return root;
-      }
-      return {
-        type: ARRAY_NODE,
-        size: root.size,
-        array: cloneAndSet(root.array, idx, {
-          type: ENTRY,
-          k: key,
-          v: val
-        })
-      };
-    }
-    addedLeaf.val = true;
-    return {
-      type: ARRAY_NODE,
-      size: root.size,
-      array: cloneAndSet(
-        root.array,
-        idx,
-        createNode(shift + SHIFT, node.k, node.v, hash, key, val)
-      )
-    };
-  }
-  const n = assoc(node, shift + SHIFT, hash, key, val, addedLeaf);
-  if (n === node) {
-    return root;
-  }
-  return {
-    type: ARRAY_NODE,
-    size: root.size,
-    array: cloneAndSet(root.array, idx, n)
-  };
-}
-function assocIndex(root, shift, hash, key, val, addedLeaf) {
-  const bit = bitpos(hash, shift);
-  const idx = index(root.bitmap, bit);
-  if ((root.bitmap & bit) !== 0) {
-    const node = root.array[idx];
-    if (node.type !== ENTRY) {
-      const n = assoc(node, shift + SHIFT, hash, key, val, addedLeaf);
-      if (n === node) {
-        return root;
-      }
-      return {
-        type: INDEX_NODE,
-        bitmap: root.bitmap,
-        array: cloneAndSet(root.array, idx, n)
-      };
-    }
-    const nodeKey = node.k;
-    if (isEqual(key, nodeKey)) {
-      if (val === node.v) {
-        return root;
-      }
-      return {
-        type: INDEX_NODE,
-        bitmap: root.bitmap,
-        array: cloneAndSet(root.array, idx, {
-          type: ENTRY,
-          k: key,
-          v: val
-        })
-      };
-    }
-    addedLeaf.val = true;
-    return {
-      type: INDEX_NODE,
-      bitmap: root.bitmap,
-      array: cloneAndSet(
-        root.array,
-        idx,
-        createNode(shift + SHIFT, nodeKey, node.v, hash, key, val)
-      )
-    };
-  } else {
-    const n = root.array.length;
-    if (n >= MAX_INDEX_NODE) {
-      const nodes = new Array(32);
-      const jdx = mask(hash, shift);
-      nodes[jdx] = assocIndex(EMPTY, shift + SHIFT, hash, key, val, addedLeaf);
-      let j = 0;
-      let bitmap = root.bitmap;
-      for (let i = 0; i < 32; i++) {
-        if ((bitmap & 1) !== 0) {
-          const node = root.array[j++];
-          nodes[i] = node;
-        }
-        bitmap = bitmap >>> 1;
-      }
-      return {
-        type: ARRAY_NODE,
-        size: n + 1,
-        array: nodes
-      };
-    } else {
-      const newArray = spliceIn(root.array, idx, {
-        type: ENTRY,
-        k: key,
-        v: val
-      });
-      addedLeaf.val = true;
-      return {
-        type: INDEX_NODE,
-        bitmap: root.bitmap | bit,
-        array: newArray
-      };
-    }
-  }
-}
-function assocCollision(root, shift, hash, key, val, addedLeaf) {
-  if (hash === root.hash) {
-    const idx = collisionIndexOf(root, key);
-    if (idx !== -1) {
-      const entry = root.array[idx];
-      if (entry.v === val) {
-        return root;
-      }
-      return {
-        type: COLLISION_NODE,
-        hash,
-        array: cloneAndSet(root.array, idx, { type: ENTRY, k: key, v: val })
-      };
-    }
-    const size = root.array.length;
-    addedLeaf.val = true;
-    return {
-      type: COLLISION_NODE,
-      hash,
-      array: cloneAndSet(root.array, size, { type: ENTRY, k: key, v: val })
-    };
-  }
-  return assoc(
-    {
-      type: INDEX_NODE,
-      bitmap: bitpos(root.hash, shift),
-      array: [root]
-    },
-    shift,
-    hash,
-    key,
-    val,
-    addedLeaf
-  );
-}
-function collisionIndexOf(root, key) {
-  const size = root.array.length;
-  for (let i = 0; i < size; i++) {
-    if (isEqual(key, root.array[i].k)) {
-      return i;
-    }
-  }
-  return -1;
-}
-function find(root, shift, hash, key) {
-  switch (root.type) {
-    case ARRAY_NODE:
-      return findArray(root, shift, hash, key);
-    case INDEX_NODE:
-      return findIndex(root, shift, hash, key);
-    case COLLISION_NODE:
-      return findCollision(root, key);
-  }
-}
-function findArray(root, shift, hash, key) {
-  const idx = mask(hash, shift);
-  const node = root.array[idx];
-  if (node === void 0) {
-    return void 0;
-  }
-  if (node.type !== ENTRY) {
-    return find(node, shift + SHIFT, hash, key);
-  }
-  if (isEqual(key, node.k)) {
-    return node;
-  }
-  return void 0;
-}
-function findIndex(root, shift, hash, key) {
-  const bit = bitpos(hash, shift);
-  if ((root.bitmap & bit) === 0) {
-    return void 0;
-  }
-  const idx = index(root.bitmap, bit);
-  const node = root.array[idx];
-  if (node.type !== ENTRY) {
-    return find(node, shift + SHIFT, hash, key);
-  }
-  if (isEqual(key, node.k)) {
-    return node;
-  }
-  return void 0;
-}
-function findCollision(root, key) {
-  const idx = collisionIndexOf(root, key);
-  if (idx < 0) {
-    return void 0;
-  }
-  return root.array[idx];
-}
-function without(root, shift, hash, key) {
-  switch (root.type) {
-    case ARRAY_NODE:
-      return withoutArray(root, shift, hash, key);
-    case INDEX_NODE:
-      return withoutIndex(root, shift, hash, key);
-    case COLLISION_NODE:
-      return withoutCollision(root, key);
-  }
-}
-function withoutArray(root, shift, hash, key) {
-  const idx = mask(hash, shift);
-  const node = root.array[idx];
-  if (node === void 0) {
-    return root;
-  }
-  let n = void 0;
-  if (node.type === ENTRY) {
-    if (!isEqual(node.k, key)) {
-      return root;
-    }
-  } else {
-    n = without(node, shift + SHIFT, hash, key);
-    if (n === node) {
-      return root;
-    }
-  }
-  if (n === void 0) {
-    if (root.size <= MIN_ARRAY_NODE) {
-      const arr = root.array;
-      const out = new Array(root.size - 1);
-      let i = 0;
-      let j = 0;
-      let bitmap = 0;
-      while (i < idx) {
-        const nv = arr[i];
-        if (nv !== void 0) {
-          out[j] = nv;
-          bitmap |= 1 << i;
-          ++j;
-        }
-        ++i;
-      }
-      ++i;
-      while (i < arr.length) {
-        const nv = arr[i];
-        if (nv !== void 0) {
-          out[j] = nv;
-          bitmap |= 1 << i;
-          ++j;
-        }
-        ++i;
-      }
-      return {
-        type: INDEX_NODE,
-        bitmap,
-        array: out
-      };
-    }
-    return {
-      type: ARRAY_NODE,
-      size: root.size - 1,
-      array: cloneAndSet(root.array, idx, n)
-    };
-  }
-  return {
-    type: ARRAY_NODE,
-    size: root.size,
-    array: cloneAndSet(root.array, idx, n)
-  };
-}
-function withoutIndex(root, shift, hash, key) {
-  const bit = bitpos(hash, shift);
-  if ((root.bitmap & bit) === 0) {
-    return root;
-  }
-  const idx = index(root.bitmap, bit);
-  const node = root.array[idx];
-  if (node.type !== ENTRY) {
-    const n = without(node, shift + SHIFT, hash, key);
-    if (n === node) {
-      return root;
-    }
-    if (n !== void 0) {
-      return {
-        type: INDEX_NODE,
-        bitmap: root.bitmap,
-        array: cloneAndSet(root.array, idx, n)
-      };
-    }
-    if (root.bitmap === bit) {
-      return void 0;
-    }
-    return {
-      type: INDEX_NODE,
-      bitmap: root.bitmap ^ bit,
-      array: spliceOut(root.array, idx)
-    };
-  }
-  if (isEqual(key, node.k)) {
-    if (root.bitmap === bit) {
-      return void 0;
-    }
-    return {
-      type: INDEX_NODE,
-      bitmap: root.bitmap ^ bit,
-      array: spliceOut(root.array, idx)
-    };
-  }
-  return root;
-}
-function withoutCollision(root, key) {
-  const idx = collisionIndexOf(root, key);
-  if (idx < 0) {
-    return root;
-  }
-  if (root.array.length === 1) {
-    return void 0;
-  }
-  return {
-    type: COLLISION_NODE,
-    hash: root.hash,
-    array: spliceOut(root.array, idx)
-  };
-}
-function forEach(root, fn) {
-  if (root === void 0) {
-    return;
-  }
-  const items = root.array;
-  const size = items.length;
-  for (let i = 0; i < size; i++) {
-    const item = items[i];
-    if (item === void 0) {
-      continue;
-    }
-    if (item.type === ENTRY) {
-      fn(item.v, item.k);
-      continue;
-    }
-    forEach(item, fn);
-  }
-}
-var Dict = class _Dict {
-  /**
-   * @template V
-   * @param {Record<string,V>} o
-   * @returns {Dict<string,V>}
-   */
-  static fromObject(o) {
-    const keys = Object.keys(o);
-    let m = _Dict.new();
-    for (let i = 0; i < keys.length; i++) {
-      const k = keys[i];
-      m = m.set(k, o[k]);
-    }
-    return m;
-  }
-  /**
-   * @template K,V
-   * @param {Map<K,V>} o
-   * @returns {Dict<K,V>}
-   */
-  static fromMap(o) {
-    let m = _Dict.new();
-    o.forEach((v, k) => {
-      m = m.set(k, v);
-    });
-    return m;
-  }
-  static new() {
-    return new _Dict(void 0, 0);
-  }
-  /**
-   * @param {undefined | Node<K,V>} root
-   * @param {number} size
-   */
-  constructor(root, size) {
-    this.root = root;
-    this.size = size;
-  }
-  /**
-   * @template NotFound
-   * @param {K} key
-   * @param {NotFound} notFound
-   * @returns {NotFound | V}
-   */
-  get(key, notFound) {
-    if (this.root === void 0) {
-      return notFound;
-    }
-    const found = find(this.root, 0, getHash(key), key);
-    if (found === void 0) {
-      return notFound;
-    }
-    return found.v;
-  }
-  /**
-   * @param {K} key
-   * @param {V} val
-   * @returns {Dict<K,V>}
-   */
-  set(key, val) {
-    const addedLeaf = { val: false };
-    const root = this.root === void 0 ? EMPTY : this.root;
-    const newRoot = assoc(root, 0, getHash(key), key, val, addedLeaf);
-    if (newRoot === this.root) {
-      return this;
-    }
-    return new _Dict(newRoot, addedLeaf.val ? this.size + 1 : this.size);
-  }
-  /**
-   * @param {K} key
-   * @returns {Dict<K,V>}
-   */
-  delete(key) {
-    if (this.root === void 0) {
-      return this;
-    }
-    const newRoot = without(this.root, 0, getHash(key), key);
-    if (newRoot === this.root) {
-      return this;
-    }
-    if (newRoot === void 0) {
-      return _Dict.new();
-    }
-    return new _Dict(newRoot, this.size - 1);
-  }
-  /**
-   * @param {K} key
-   * @returns {boolean}
-   */
-  has(key) {
-    if (this.root === void 0) {
-      return false;
-    }
-    return find(this.root, 0, getHash(key), key) !== void 0;
-  }
-  /**
-   * @returns {[K,V][]}
-   */
-  entries() {
-    if (this.root === void 0) {
-      return [];
-    }
-    const result = [];
-    this.forEach((v, k) => result.push([k, v]));
-    return result;
-  }
-  /**
-   *
-   * @param {(val:V,key:K)=>void} fn
-   */
-  forEach(fn) {
-    forEach(this.root, fn);
-  }
-  hashCode() {
-    let h = 0;
-    this.forEach((v, k) => {
-      h = h + hashMerge(getHash(v), getHash(k)) | 0;
-    });
-    return h;
-  }
-  /**
-   * @param {unknown} o
-   * @returns {boolean}
-   */
-  equals(o) {
-    if (!(o instanceof _Dict) || this.size !== o.size) {
-      return false;
-    }
-    let equal = true;
-    this.forEach((v, k) => {
-      equal = equal && isEqual(o.get(k, !v), v);
-    });
-    return equal;
-  }
-};
 
 // build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
-function identity(x) {
-  return x;
-}
-function print_debug(string) {
-  if (typeof process === "object" && process.stderr?.write) {
-    process.stderr.write(string + "\n");
-  } else if (typeof Deno === "object") {
-    Deno.stderr.writeSync(new TextEncoder().encode(string + "\n"));
-  } else {
-    console.log(string);
-  }
-}
-function inspect(v) {
-  const t = typeof v;
-  if (v === true)
-    return "True";
-  if (v === false)
-    return "False";
-  if (v === null)
-    return "//js(null)";
-  if (v === void 0)
-    return "Nil";
-  if (t === "string")
-    return JSON.stringify(v);
-  if (t === "bigint" || t === "number")
-    return v.toString();
-  if (Array.isArray(v))
-    return `#(${v.map(inspect).join(", ")})`;
-  if (v instanceof List)
-    return inspectList(v);
-  if (v instanceof UtfCodepoint)
-    return inspectUtfCodepoint(v);
-  if (v instanceof BitArray)
-    return inspectBitArray(v);
-  if (v instanceof CustomType)
-    return inspectCustomType(v);
-  if (v instanceof Dict)
-    return inspectDict(v);
-  if (v instanceof Set)
-    return `//js(Set(${[...v].map(inspect).join(", ")}))`;
-  if (v instanceof RegExp)
-    return `//js(${v})`;
-  if (v instanceof Date)
-    return `//js(Date("${v.toISOString()}"))`;
-  if (v instanceof Function) {
-    const args = [];
-    for (const i of Array(v.length).keys())
-      args.push(String.fromCharCode(i + 97));
-    return `//fn(${args.join(", ")}) { ... }`;
-  }
-  return inspectObject(v);
-}
-function inspectDict(map3) {
-  let body = "dict.from_list([";
-  let first = true;
-  map3.forEach((value2, key) => {
-    if (!first)
-      body = body + ", ";
-    body = body + "#(" + inspect(key) + ", " + inspect(value2) + ")";
-    first = false;
-  });
-  return body + "])";
-}
-function inspectObject(v) {
-  const name = Object.getPrototypeOf(v)?.constructor?.name || "Object";
-  const props = [];
-  for (const k of Object.keys(v)) {
-    props.push(`${inspect(k)}: ${inspect(v[k])}`);
-  }
-  const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name === "Object" ? "" : name + " ";
-  return `//js(${head}{${body}})`;
-}
-function inspectCustomType(record) {
-  const props = Object.keys(record).map((label) => {
-    const value2 = inspect(record[label]);
-    return isNaN(parseInt(label)) ? `${label}: ${value2}` : value2;
-  }).join(", ");
-  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
-}
-function inspectList(list) {
-  return `[${list.toArray().map(inspect).join(", ")}]`;
-}
-function inspectBitArray(bits) {
-  return `<<${Array.from(bits.buffer).join(", ")}>>`;
-}
-function inspectUtfCodepoint(codepoint2) {
-  return `//utfcodepoint(${String.fromCodePoint(codepoint2.value)})`;
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/string.mjs
-function inspect2(term) {
-  let _pipe = inspect(term);
-  return to_string2(_pipe);
+function console_log(term) {
+  console.log(term);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/io.mjs
-function debug(term) {
-  let _pipe = term;
-  let _pipe$1 = inspect2(_pipe);
-  print_debug(_pipe$1);
-  return term;
+function println(string) {
+  return console_log(string);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/function.mjs
@@ -1073,10 +154,6 @@ function component(tag, children) {
     }
   );
 }
-function copy(comp) {
-  let id = create_id();
-  return create_copy(comp, id);
-}
 var text_tag = "p";
 function text(value2) {
   let _pipe = create_id();
@@ -1090,17 +167,11 @@ function text(value2) {
 }
 
 // build/dev/javascript/novdom/novdom/listener.mjs
+function onclick(callback) {
+  return new Listener("click", callback);
+}
 function onmousemove(callback) {
   return new Listener("mousemove", callback);
-}
-function onemouseover(callback) {
-  return new Listener("mouseover", callback);
-}
-function onmouseout(callback) {
-  return new Listener("mouseout", callback);
-}
-function onmousedown(callback) {
-  return new Listener("mousedown", callback);
 }
 function onmouseup(callback) {
   return new Listener("mouseup", callback);
@@ -1296,16 +367,16 @@ function createParseClassName(config) {
     let bracketDepth = 0;
     let modifierStart = 0;
     let postfixModifierPosition;
-    for (let index2 = 0; index2 < className.length; index2++) {
-      let currentCharacter = className[index2];
+    for (let index = 0; index < className.length; index++) {
+      let currentCharacter = className[index];
       if (bracketDepth === 0) {
-        if (currentCharacter === firstSeparatorCharacter && (isSeparatorSingleCharacter || className.slice(index2, index2 + separatorLength) === separator)) {
-          modifiers.push(className.slice(modifierStart, index2));
-          modifierStart = index2 + separatorLength;
+        if (currentCharacter === firstSeparatorCharacter && (isSeparatorSingleCharacter || className.slice(index, index + separatorLength) === separator)) {
+          modifiers.push(className.slice(modifierStart, index));
+          modifierStart = index + separatorLength;
           continue;
         }
         if (currentCharacter === "/") {
-          postfixModifierPosition = index2;
+          postfixModifierPosition = index;
           continue;
         }
       }
@@ -1422,12 +493,12 @@ function mergeClassList(classList, configUtils) {
   }).reverse().map((parsed) => parsed.originalClassName).join(" ");
 }
 function twJoin() {
-  let index2 = 0;
+  let index = 0;
   let argument;
   let resolvedValue;
   let string = "";
-  while (index2 < arguments.length) {
-    if (argument = arguments[index2++]) {
+  while (index < arguments.length) {
+    if (argument = arguments[index++]) {
       if (resolvedValue = toValue(argument)) {
         string && (string += " ");
         string += resolvedValue;
@@ -3617,6 +2688,32 @@ String.prototype.smartSplit = function(separator) {
 Array.prototype.toList = function() {
   return List.fromArray(this);
 };
+var old_addEventListener = EventTarget.prototype.addEventListener;
+EventTarget.prototype.addEventListener = function(...args) {
+  old_addEventListener.apply(this, args);
+  const name = args[0] + "Listeners";
+  if (this[name] === void 0) {
+    this[name] = [args[1]];
+    return;
+  }
+  this[name] = [args[1], ...this[name]];
+};
+var old_removeEventListener = EventTarget.prototype.removeEventListener;
+EventTarget.prototype.removeEventListener = function(...args) {
+  const name = args[0] + "Listeners";
+  if (args.length === 1) {
+    if (this[name] === void 0) {
+      return;
+    }
+    this[name].forEach((l) => this.removeEventListener(args[0], l));
+    return;
+  }
+  old_removeEventListener.apply(this, args);
+  if (this[name] === void 0) {
+    return;
+  }
+  this[name] = this[name].filter((l) => l !== args[1]);
+};
 function init2() {
   globalThis.state_map = /* @__PURE__ */ new Map();
   globalThis.parameter_component_map = /* @__PURE__ */ new Map();
@@ -3650,18 +2747,11 @@ function get_element(comp, children_comp) {
     const children = children_comp.toArray().map(get_element);
     elem.replaceChildren(...children);
   } catch (_) {
-    const text2 = document.createTextNode(children_comp.replace(" ", "\xA0"));
-    elem.replaceChildren(text2);
+    const text3 = document.createTextNode(children_comp.replace(" ", "\xA0"));
+    elem.replaceChildren(text3);
   }
   add_to_unrendered(elem);
   return elem;
-}
-function create_copy(comp, new_id) {
-  const elem = get_element(comp);
-  const copy2 = elem.cloneNode(true);
-  copy2.setAttribute("id", new_id);
-  add_to_unrendered(copy2);
-  return { id: new_id, tag: comp.tag };
 }
 function add_parameter(comp, param_id) {
   globalThis.parameter_component_map.set(param_id, comp.id);
@@ -3722,6 +2812,46 @@ function handle_attribute(elem, name, value2, remove) {
       return;
   }
 }
+function show(comp) {
+  const elem = get_element(comp);
+  elem.ontransitionend = null;
+  elem.removeEventListener("transitionend");
+  elem.removeEventListener("transitionstart");
+  elem.hidden = false;
+  execute_render(elem);
+}
+function hide(comp, initial = false) {
+  const elem = get_element(comp);
+  console.log("show", elem.id);
+  if (initial) {
+    elem.hidden = true;
+    return;
+  }
+  execute_unrender(
+    elem,
+    () => {
+      elem.hidden = true;
+    },
+    () => {
+    }
+  );
+}
+function swap(this_comp, for_comp) {
+  const this_elem = get_element(this_comp);
+  if (this_elem.hidden) {
+    show(for_comp);
+    return;
+  }
+  execute_unrender(
+    this_elem,
+    () => {
+      this_elem.hidden = true;
+    },
+    () => {
+      show(for_comp);
+    }
+  );
+}
 function add_listener(comp, name, callback) {
   const elem = get_element(comp);
   elem.addEventListener(name, callback);
@@ -3750,31 +2880,40 @@ function set_child(comp, child_comp) {
   );
   return comp;
 }
-function add_render(comp, onrender) {
+function add_render(comp, onrender2) {
   const elem = get_element(comp);
-  elem.onrender = onrender;
+  elem.onrender = onrender2;
   return comp;
 }
-function add_unrender(comp, onunrender, trigger) {
+function add_unrender(comp, onunrender2, trigger) {
   const elem = get_element(comp);
-  const callback = (onend, onnew) => {
-    switch (trigger.constructor.name) {
-      case "Start":
+  const unrender_callback_fn = get_unrender_callback_fn(elem, trigger);
+  elem.onunrender = (onend2, onnew) => {
+    unrender_callback_fn(onend2, onnew);
+    onunrender2();
+  };
+  return comp;
+}
+function get_unrender_callback_fn(elem, trigger) {
+  switch (trigger.constructor.name) {
+    case "Start":
+      return (onend2, onnew) => {
+        if (elem !== elem.renderRoot)
+          return;
         onnew();
-        add_listener(comp, "transitionend", create_once(onend));
-        break;
-      case "End":
-        elem.ontransitionend = (e) => {
-          onend();
+        elem.addEventListener("transitionend", create_once(onend2));
+      };
+    case "End":
+      return (onend2, onnew) => {
+        if (elem !== elem.renderRoot)
+          return;
+        elem.ontransitionend = () => {
+          onend2();
           onnew();
           elem.ontransitionend = null;
         };
-        break;
-    }
-    onunrender();
-  };
-  elem.onunrender = callback;
-  return comp;
+      };
+  }
 }
 function execute_render(elem) {
   execute_render_iter(elem);
@@ -3795,27 +2934,27 @@ function execute_render_iter(elem) {
     });
   }
 }
-function execute_unrender(elem, onend, onnew) {
+function execute_unrender(elem, onend2, onnew) {
   if (!elem) {
     onnew();
     return;
   }
   if (!elem.onunrender) {
-    onend();
+    onend2();
     onnew();
     return;
   }
-  execute_unrender_iter(elem, onend, onnew);
+  execute_unrender_iter(elem, onend2, onnew);
 }
-function execute_unrender_iter(elem, onend, onnew, root = elem) {
+function execute_unrender_iter(elem, onend2, onnew, root = elem) {
   ;
   [...elem.children].forEach((child) => {
-    execute_unrender_iter(child, onend, onnew, root);
+    execute_unrender_iter(child, onend2, onnew, root);
   });
   if (elem.onunrender) {
     console.log("execute_unrender_iter", elem.id);
     elem.renderRoot = root;
-    elem.onunrender(onend, onnew);
+    elem.onunrender(onend2, onnew);
   }
 }
 function update_state(id, value2) {
@@ -3832,6 +2971,12 @@ function get_state(id) {
 function add_state_listener(id, callback) {
   let current = globalThis.state_listener.get(id) || [];
   globalThis.state_listener.set(id, [callback, ...current]);
+}
+function set_last_value(id, value2) {
+  globalThis.last_value_map.set(id, value2);
+}
+function get_last_value(id) {
+  return globalThis.last_value_map.get(id);
 }
 function encode_key(key) {
   let is_short = key.ctrlKey || key.metaKey;
@@ -3861,10 +3006,21 @@ function store_mouse_position(e) {
 }
 
 // build/dev/javascript/novdom/novdom/internals/parameter.mjs
+var Start = class extends CustomType {
+};
+var End = class extends CustomType {
+};
 var Render = class extends CustomType {
   constructor(x0) {
     super();
     this[0] = x0;
+  }
+};
+var Unrender = class extends CustomType {
+  constructor(x0, x1) {
+    super();
+    this[0] = x0;
+    this[1] = x1;
   }
 };
 var Attribute = class extends CustomType {
@@ -3879,6 +3035,13 @@ var Listener = class extends CustomType {
     super();
     this.name = name;
     this.callback = callback;
+  }
+};
+var Modifier = class extends CustomType {
+  constructor(id, x1) {
+    super();
+    this.id = id;
+    this[1] = x1;
   }
 };
 var ParameterContainer = class extends CustomType {
@@ -3915,16 +3078,16 @@ function set_parameters(component2, params) {
         let id = param.id;
         let store = param[1];
         if (store instanceof Render) {
-          let render_fn = store[0];
+          let render_fn2 = store[0];
           let _pipe = component2;
           let _pipe$1 = add_parameter(_pipe, id);
-          return add_render(_pipe$1, render_fn);
+          return add_render(_pipe$1, render_fn2);
         } else {
-          let render_fn = store[0];
+          let render_fn2 = store[0];
           let trigger = store[1];
           let _pipe = component2;
           let _pipe$1 = add_parameter(_pipe, id);
-          return add_unrender(_pipe$1, render_fn, trigger);
+          return add_unrender(_pipe$1, render_fn2, trigger);
         }
       }
     }
@@ -3933,27 +3096,15 @@ function set_parameters(component2, params) {
 }
 
 // build/dev/javascript/novdom/novdom/attribute.mjs
-function class$(value2) {
-  return new Attribute("class", value2);
-}
-function style(values) {
-  let res = fold(
-    values,
-    "",
-    (res2, _use1) => {
-      let key = _use1[0];
-      let value2 = _use1[1];
-      if (value2 === "") {
-        return res2 + key + ";";
-      } else {
-        return res2 + key + ":" + value2 + ";";
-      }
-    }
-  );
-  return new Attribute("style", res);
+function tailwind(value2) {
+  return new Attribute("tailwind", value2);
 }
 
 // build/dev/javascript/novdom/novdom/html.mjs
+function text2(parameters, value2) {
+  let _pipe = text(value2);
+  return set_parameters(_pipe, parameters);
+}
 var div_tag = "div";
 function div(parameters, children) {
   let _pipe = component(div_tag, children);
@@ -3973,6 +3124,11 @@ function from_id(id) {
 function value(state) {
   return get_state(state.state_id);
 }
+function create(init4) {
+  let id = create_id();
+  set_state(id, init4);
+  return new State(id);
+}
 function create_with_id(id, init4) {
   set_state(id, init4);
   return new State(id);
@@ -3986,6 +3142,31 @@ function listen(state, callback) {
 
 // build/dev/javascript/novdom/novdom/state_component.mjs
 var state_component_tag = "_STATE_COMPONENT_";
+function ternary1(state, when, then$, otherwise) {
+  let component$1 = component(state_component_tag, toList([then$, otherwise]));
+  let id = create_id();
+  let callback = (a) => {
+    let condition = when(a);
+    let $2 = get_last_value(id);
+    if (condition && !$2) {
+      swap(otherwise, then$);
+    } else if (!condition && $2) {
+      swap(then$, otherwise);
+    } else {
+    }
+    return set_last_value(id, condition);
+  };
+  listen(state, callback);
+  let $ = when(value(state));
+  if ($) {
+    set_last_value(id, true);
+    hide(otherwise, true);
+  } else {
+    set_last_value(id, false);
+    hide(then$, true);
+  }
+  return component$1;
+}
 function utilize(state, do$) {
   let children = do$(value(state));
   let comp = component(state_component_tag, toList([children]));
@@ -3999,79 +3180,7 @@ function utilize(state, do$) {
 }
 
 // build/dev/javascript/novdom/novdom/motion.mjs
-var DragEvent = class extends CustomType {
-  constructor(value2, preview, drop2, cancel, droppable) {
-    super();
-    this.value = value2;
-    this.preview = preview;
-    this.drop = drop2;
-    this.cancel = cancel;
-    this.droppable = droppable;
-  }
-};
-var Preview = class extends CustomType {
-  constructor(x0) {
-    super();
-    this[0] = x0;
-  }
-};
-var Self = class extends CustomType {
-};
 var drag_event_id = "_DRAGGABLE_";
-function ondrag(preview_type, value2, on_drag, on_cancel, on_drop) {
-  let drag_event = from_id(drag_event_id);
-  let drag_id = create_id();
-  return new ParameterContainer(
-    drag_id,
-    toList([
-      onmousedown(
-        (_) => {
-          let preview = (() => {
-            let _pipe = (() => {
-              if (preview_type instanceof Preview) {
-                let preview2 = preview_type[0];
-                return toList([
-                  (() => {
-                    let _pipe2 = preview2;
-                    return copy(_pipe2);
-                  })()
-                ]);
-              } else {
-                return toList([
-                  (() => {
-                    let _pipe2 = drag_id;
-                    let _pipe$12 = get_component2(_pipe2);
-                    return copy(_pipe$12);
-                  })()
-                ]);
-              }
-            })();
-            let _pipe$1 = ((_capture) => {
-              return component(drag_event_id, _capture);
-            })(_pipe);
-            return set_parameters(
-              _pipe$1,
-              toList([
-                style(
-                  toList([
-                    ["position", "absolute"],
-                    ["top", "var(--mouse-y)"],
-                    ["left", "var(--mouse-x)"],
-                    ["min-width", "20px"],
-                    ["min-height", "20px"]
-                  ])
-                )
-              ])
-            );
-          })();
-          let event = new DragEvent(value2, preview, on_drop, on_cancel, false);
-          update2(drag_event, new Some(event));
-          return on_drag(event);
-        }
-      )
-    ])
-  );
-}
 function cleanup() {
   let state = from_id(drag_event_id);
   return () => {
@@ -4113,93 +3222,6 @@ function init3() {
   );
   return add_to_viewport(_pipe$1, "_drag_");
 }
-function ondrop(on_drag, on_hover, on_drop) {
-  let drag_event = from_id(drag_event_id);
-  let _pipe = drag_event;
-  listen(
-    _pipe,
-    (event) => {
-      if (event instanceof Some && !event[0].droppable) {
-        let event$1 = event[0];
-        return on_drag(event$1);
-      } else {
-        return void 0;
-      }
-    }
-  );
-  return new ParameterContainer(
-    "",
-    toList([
-      onemouseover(
-        (_) => {
-          let $ = value(drag_event);
-          if ($ instanceof Some && $[0] instanceof DragEvent) {
-            let value2 = $[0].value;
-            let preview = $[0].preview;
-            let cleanup$1 = $[0].drop;
-            let cancel = $[0].cancel;
-            let droppable = $[0].droppable;
-            let event = new DragEvent(
-              value2,
-              preview,
-              cleanup$1,
-              cancel,
-              droppable
-            );
-            return update2(
-              drag_event,
-              new Some(
-                new DragEvent(
-                  value2,
-                  preview,
-                  cleanup$1,
-                  cancel,
-                  on_hover(event)
-                )
-              )
-            );
-          } else {
-            return void 0;
-          }
-        }
-      ),
-      onmouseout(
-        (_) => {
-          let $ = value(drag_event);
-          if ($ instanceof Some) {
-            let event = $[0];
-            return update2(
-              drag_event,
-              new Some(
-                new DragEvent(
-                  event.value,
-                  event.preview,
-                  event.drop,
-                  event.cancel,
-                  false
-                )
-              )
-            );
-          } else {
-            return void 0;
-          }
-        }
-      ),
-      onmouseup(
-        (_) => {
-          let $ = value(drag_event);
-          if ($ instanceof Some && $[0].droppable) {
-            let event = $[0];
-            event.drop(event);
-            return on_drop(event, cleanup());
-          } else {
-            return void 0;
-          }
-        }
-      )
-    ])
-  );
-}
 
 // build/dev/javascript/novdom/novdom/framework.mjs
 function start(component2) {
@@ -4210,102 +3232,89 @@ function start(component2) {
   return add_to_viewport(_pipe, "_app_");
 }
 
+// build/dev/javascript/novdom/novdom/modifier.mjs
+function render_fn(comp_id, parameters) {
+  return () => {
+    let _pipe = comp_id;
+    let _pipe$1 = get_component2(_pipe);
+    set_parameters(_pipe$1, parameters);
+    return void 0;
+  };
+}
+function onrender(parameters) {
+  let id = create_id();
+  return new Modifier(id, new Render(render_fn(id, parameters)));
+}
+function onunrender(parameters, trigger) {
+  let id = create_id();
+  return new Modifier(id, new Unrender(render_fn(id, parameters), trigger));
+}
+var onend = new End();
+var onstart = new Start();
+
 // build/dev/javascript/app/app.mjs
 function main() {
   return start(
     () => {
+      let boolean = create(true);
+      let counter = create(1);
       return div(
-        toList([]),
+        toList([tailwind("p-5")]),
         toList([
           div(
             toList([
-              class$("p-5 bg-blue-100 select-none"),
-              ondrag(
-                new Self(),
-                "A",
-                (e) => {
-                  debug("drag start");
-                  return void 0;
-                },
-                (e, cleanup2) => {
-                  debug("drag end");
-                  return cleanup2();
-                },
-                (e) => {
-                  debug("drag drop");
+              tailwind(
+                "p-2 bg-green-200 select-none hover:bg-violet-600 active:bg-yellow-700"
+              ),
+              onclick(
+                (_) => {
+                  println("Button clicked!");
+                  update2(boolean, !value(boolean));
+                  update2(counter, value(counter) + 1);
                   return void 0;
                 }
               )
             ]),
-            toList([text("Hello, world!")])
+            toList([text("current value: nothind")])
           ),
-          div(
-            toList([
-              class$("p-5 bg-red-100 select-none"),
-              ondrag(
-                new Preview(
-                  div(toList([class$("h-8 w-8 bg-red-400")]), toList([]))
+          ternary1(
+            boolean,
+            (value2) => {
+              return value2;
+            },
+            div(
+              toList([
+                tailwind(
+                  "p-2 bg-yellow-200 select-none transition-all duration-[400ms] scale-0"
                 ),
-                "A",
-                (e) => {
-                  debug("drag start");
-                  return void 0;
-                },
-                (e, cleanup2) => {
-                  debug("drag end");
-                  return cleanup2();
-                },
-                (e) => {
-                  debug("drag drop");
-                  return void 0;
-                }
-              )
-            ]),
-            toList([text("Hello, world!")])
-          ),
-          div(
-            toList([
-              class$("p-5 bg-green-100 select-none"),
-              ondrag(
-                new Preview(
-                  div(toList([class$("h-8 w-8 bg-green-400")]), toList([]))
+                onrender(toList([tailwind("scale-100")])),
+                onunrender(toList([tailwind("scale-0")]), onstart)
+              ]),
+              toList([
+                text("current value: nothind"),
+                text("current value: nothind"),
+                text("current value: nothind")
+              ])
+            ),
+            div(
+              toList([
+                tailwind(
+                  "p-2 bg-blue-200 select-none transition-all duration-[400ms] scale-0"
                 ),
-                "A",
-                (e) => {
-                  debug("drag start");
-                  return void 0;
-                },
-                (e, cleanup2) => {
-                  debug("drag end");
-                  return cleanup2();
-                },
-                (e) => {
-                  debug("drag drop failed");
-                  return void 0;
-                }
-              )
-            ]),
-            toList([text("Hello, world!")])
-          ),
-          div(
-            toList([
-              class$("p-5 bg-yellow-100 select-none"),
-              ondrop(
-                (e) => {
-                  debug("drag over");
-                  return void 0;
-                },
-                (e) => {
-                  debug("drag hover");
-                  return true;
-                },
-                (e, cleanup2) => {
-                  debug("drag drop success");
-                  return cleanup2();
-                }
-              )
-            ]),
-            toList([text("DROP")])
+                onrender(toList([tailwind("scale-100")])),
+                onunrender(toList([tailwind("scale-0")]), onstart)
+              ]),
+              toList([
+                text2(
+                  toList([
+                    tailwind("bg-green-500 transition-all duration-[4000ms]"),
+                    onrender(toList([tailwind("bg-yellow-500")])),
+                    onunrender(toList([tailwind("bg-blue-500")]), onstart)
+                  ]),
+                  "current value: nothind"
+                )
+              ])
+            )
           )
         ])
       );

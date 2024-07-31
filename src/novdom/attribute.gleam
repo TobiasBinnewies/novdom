@@ -1,16 +1,19 @@
 import gleam/list
 import novdom/internals/parameter.{type Parameter, Attribute}
 
-/// Adding classes to the component
+/// Adding classes to the component \
 /// Concatenating the classes if the class attribute already exists
 pub fn class(value: String) -> Parameter {
   Attribute("class", value)
 }
 
-// TODO: Tailwind, merge so that classes are overidden
-// pub fn tailwind(value: String) -> Parameter {}
+/// Adding tailwind classes to the component \
+/// Uses tailwind-merge to merge the classes if the class attribute already exists
+pub fn tailwind(value: String) -> Parameter {
+  Attribute("tailwind", value)
+}
 
-/// Adding inline-styles to the component
+/// Adding inline-styles to the component \
 /// Overriding the style attribute if it already exists
 pub fn style(values: List(#(String, String))) -> Parameter {
   let res = {

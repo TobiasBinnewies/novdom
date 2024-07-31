@@ -75,7 +75,6 @@ pub fn keypress_callback(e: Event) -> Nil
 
 @external(javascript, "../document_ffi.mjs", "set_hotkey_listener")
 pub fn set_hotkey_listener(id: HotkeyId, callback: fn(Event) -> Nil) -> Nil
-
 // pub type Key {
 //     Q
 //     W
