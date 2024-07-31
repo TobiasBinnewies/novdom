@@ -151,9 +151,6 @@ var Component = class extends CustomType {
 function document2() {
   return new Component("document", "");
 }
-function get_component(id) {
-  return new Component(id, "");
-}
 function component(tag, children) {
   let _pipe = create_id();
   let _pipe$1 = new Component(_pipe, tag);
@@ -2698,9 +2695,34 @@ String.prototype.smartSplit = function(separator) {
 Array.prototype.toList = function() {
   return List.fromArray(this);
 };
+var old_addEventListener = EventTarget.prototype.addEventListener;
+EventTarget.prototype.addEventListener = function(...args) {
+  old_addEventListener.apply(this, args);
+  const name = args[0] + "Listeners";
+  if (this[name] === void 0) {
+    this[name] = [args[1]];
+    return;
+  }
+  this[name] = [args[1], ...this[name]];
+};
+var old_removeEventListener = EventTarget.prototype.removeEventListener;
+EventTarget.prototype.removeEventListener = function(...args) {
+  const name = args[0] + "Listeners";
+  if (args.length === 1) {
+    if (this[name] === void 0) {
+      return;
+    }
+    this[name].forEach((l) => this.removeEventListener(args[0], l));
+    return;
+  }
+  old_removeEventListener.apply(this, args);
+  if (this[name] === void 0) {
+    return;
+  }
+  this[name] = this[name].filter((l) => l !== args[1]);
+};
 function init2() {
   globalThis.state_map = /* @__PURE__ */ new Map();
-  globalThis.parameter_component_map = /* @__PURE__ */ new Map();
   globalThis.last_value_map = /* @__PURE__ */ new Map();
   globalThis.state_listener = /* @__PURE__ */ new Map();
   globalThis.reference_map = /* @__PURE__ */ new Map();
@@ -2736,13 +2758,6 @@ function get_element(comp, children_comp) {
   }
   add_to_unrendered(elem);
   return elem;
-}
-function add_parameter(comp, param_id) {
-  globalThis.parameter_component_map.set(param_id, comp.id);
-  return comp;
-}
-function get_component_id(id) {
-  return globalThis.parameter_component_map.get(id);
 }
 function add_attribute(comp, name, value2) {
   const elem = get_element(comp);
@@ -2841,24 +2856,35 @@ function add_render(comp, onrender) {
 }
 function add_unrender(comp, onunrender, trigger) {
   const elem = get_element(comp);
-  const callback = (onend, onnew) => {
-    switch (trigger.constructor.name) {
-      case "Start":
+  const unrender_callback_fn = get_unrender_callback_fn(elem, trigger);
+  elem.onunrender = (onend, onnew) => {
+    unrender_callback_fn(onend, onnew);
+    onunrender();
+  };
+  return comp;
+}
+function get_unrender_callback_fn(elem, trigger) {
+  switch (trigger.constructor.name) {
+    case "Start":
+      return (onend, onnew) => {
+        if (elem !== elem.renderRoot) {
+          return;
+        }
         onnew();
-        add_listener(comp, "transitionend", create_once(onend));
-        break;
-      case "End":
-        elem.ontransitionend = (e) => {
+        elem.addEventListener("transitionend", create_once(onend));
+      };
+    case "End":
+      return (onend, onnew) => {
+        if (elem !== elem.renderRoot) {
+          return;
+        }
+        elem.ontransitionend = () => {
           onend();
           onnew();
           elem.ontransitionend = null;
         };
-        break;
-    }
-    onunrender();
-  };
-  elem.onunrender = callback;
-  return comp;
+      };
+  }
 }
 function execute_render(elem) {
   execute_render_iter(elem);
@@ -2971,11 +2997,16 @@ var Listener = class extends CustomType {
     this.callback = callback;
   }
 };
-var ParameterContainer = class extends CustomType {
-  constructor(id, x1) {
+var ParameterList = class extends CustomType {
+  constructor(x0) {
     super();
-    this.id = id;
-    this[1] = x1;
+    this[0] = x0;
+  }
+};
+var ComponentParameterList = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
   }
 };
 function remove_parameters(component2, params) {
@@ -2994,7 +3025,7 @@ function remove_parameters(component2, params) {
         throw makeError(
           "panic",
           "novdom/internals/parameter",
-          69,
+          68,
           "",
           "Can only remove attributes and listeners",
           {}
@@ -3003,11 +3034,6 @@ function remove_parameters(component2, params) {
     }
   );
   return component2;
-}
-function get_component2(param_id) {
-  let _pipe = param_id;
-  let _pipe$1 = get_component_id(_pipe);
-  return get_component(_pipe$1);
 }
 function set_parameters(component2, params) {
   each(
@@ -3021,26 +3047,24 @@ function set_parameters(component2, params) {
         let name = param.name;
         let callback = param.callback;
         return add_listener(component2, name, callback);
-      } else if (param instanceof ParameterContainer) {
-        let id = param.id;
-        let params$1 = param[1];
-        let _pipe = component2;
-        let _pipe$1 = add_parameter(_pipe, id);
-        return set_parameters(_pipe$1, params$1);
+      } else if (param instanceof ParameterList) {
+        let params$1 = param[0];
+        return set_parameters(component2, params$1);
+      } else if (param instanceof ComponentParameterList) {
+        let f = param[0];
+        return set_parameters(component2, f(component2));
       } else {
-        let id = param.id;
-        let store = param[1];
-        if (store instanceof Render) {
-          let render_fn = store[0];
+        let f = param[0];
+        let $ = f(component2);
+        if ($ instanceof Render) {
+          let render_fn = $[0];
           let _pipe = component2;
-          let _pipe$1 = add_parameter(_pipe, id);
-          return add_render(_pipe$1, render_fn);
+          return add_render(_pipe, render_fn);
         } else {
-          let render_fn = store[0];
-          let trigger = store[1];
+          let render_fn = $[0];
+          let trigger = $[1];
           let _pipe = component2;
-          let _pipe$1 = add_parameter(_pipe, id);
-          return add_unrender(_pipe$1, render_fn, trigger);
+          return add_unrender(_pipe, render_fn, trigger);
         }
       }
     }
@@ -3092,23 +3116,23 @@ function listen(state, callback) {
 // build/dev/javascript/novdom/novdom/state_parameter.mjs
 function utilize(state, do$) {
   let id = create_id();
-  let callback = (a) => {
-    let component2 = (() => {
-      let _pipe2 = id;
-      return get_component2(_pipe2);
-    })();
-    let old = get_last_value(id);
-    let new$2 = do$(a);
-    let _pipe = component2;
-    let _pipe$1 = remove_parameters(_pipe, old);
-    set_parameters(_pipe$1, new$2);
-    set_last_value(id, new$2);
-    return void 0;
-  };
-  listen(state, callback);
-  let initial = do$(value(state));
-  set_last_value(id, initial);
-  return new ParameterContainer(id, initial);
+  return new ComponentParameterList(
+    (component2) => {
+      let callback = (a) => {
+        let old = get_last_value(id);
+        let new$2 = do$(a);
+        let _pipe = component2;
+        let _pipe$1 = remove_parameters(_pipe, old);
+        set_parameters(_pipe$1, new$2);
+        set_last_value(id, new$2);
+        return void 0;
+      };
+      listen(state, callback);
+      let initial = do$(value(state));
+      set_last_value(id, initial);
+      return initial;
+    }
+  );
 }
 function check(params) {
   return each(
@@ -3122,7 +3146,7 @@ function check(params) {
         throw makeError(
           "panic",
           "novdom/state_parameter",
-          183,
+          169,
           "",
           "Only attributes and listeners are allowed",
           {}
@@ -3134,109 +3158,100 @@ function check(params) {
 function if1(state, when, then$) {
   check(then$);
   let id = create_id();
-  let callback = (a) => {
-    let component2 = (() => {
-      let _pipe = id;
-      return get_component2(_pipe);
-    })();
-    let condition = when(a);
-    let $ = get_last_value(id);
-    if (condition && !$) {
-      set_parameters(component2, then$);
-    } else if (!condition && $) {
-      remove_parameters(component2, then$);
-    } else {
+  return new ComponentParameterList(
+    (component2) => {
+      let callback = (a) => {
+        let condition = when(a);
+        let $2 = get_last_value(id);
+        if (condition && !$2) {
+          set_parameters(component2, then$);
+        } else if (!condition && $2) {
+          remove_parameters(component2, then$);
+        } else {
+        }
+        return set_last_value(id, condition);
+      };
+      listen(state, callback);
+      let $ = when(value(state));
+      if ($) {
+        set_last_value(id, true);
+        return then$;
+      } else {
+        set_last_value(id, false);
+        return toList([]);
+      }
     }
-    return set_last_value(id, condition);
-  };
-  listen(state, callback);
-  let initial = (() => {
-    let $ = when(value(state));
-    if ($) {
-      set_last_value(id, true);
-      return then$;
-    } else {
-      set_last_value(id, false);
-      return toList([]);
-    }
-  })();
-  return new ParameterContainer(id, initial);
+  );
 }
 function if2(state1, state2, when, then$) {
   check(then$);
   let id = create_id();
-  let callback = (a, b) => {
-    let component2 = (() => {
-      let _pipe = id;
-      return get_component2(_pipe);
-    })();
-    let condition = when(a, b);
-    let $ = get_last_value(id);
-    if (condition && !$) {
-      set_parameters(component2, then$);
-    } else if (!condition && $) {
-      remove_parameters(component2, then$);
-    } else {
+  return new ComponentParameterList(
+    (component2) => {
+      let callback = (a, b) => {
+        let condition = when(a, b);
+        let $2 = get_last_value(id);
+        if (condition && !$2) {
+          set_parameters(component2, then$);
+        } else if (!condition && $2) {
+          remove_parameters(component2, then$);
+        } else {
+        }
+        return set_last_value(id, condition);
+      };
+      let callback1 = (a) => {
+        let b = value(state2);
+        return callback(a, b);
+      };
+      listen(state1, callback1);
+      let callback2 = (b) => {
+        let a = value(state1);
+        return callback(a, b);
+      };
+      listen(state2, callback2);
+      let $ = when(value(state1), value(state2));
+      if ($) {
+        set_last_value(id, true);
+        return then$;
+      } else {
+        set_last_value(id, false);
+        return toList([]);
+      }
     }
-    return set_last_value(id, condition);
-  };
-  let callback1 = (a) => {
-    let b = value(state2);
-    return callback(a, b);
-  };
-  listen(state1, callback1);
-  let callback2 = (b) => {
-    let a = value(state1);
-    return callback(a, b);
-  };
-  listen(state2, callback2);
-  let initial = (() => {
-    let $ = when(value(state1), value(state2));
-    if ($) {
-      set_last_value(id, true);
-      return then$;
-    } else {
-      set_last_value(id, false);
-      return toList([]);
-    }
-  })();
-  return new ParameterContainer(id, initial);
+  );
 }
 function ternary1(state, when, then$, otherwise) {
   check(then$);
   check(otherwise);
   let id = create_id();
-  let callback = (a) => {
-    let component2 = (() => {
-      let _pipe = id;
-      return get_component2(_pipe);
-    })();
-    let condition = when(a);
-    let $ = get_last_value(id);
-    if (condition && !$) {
-      let _pipe = component2;
-      let _pipe$1 = remove_parameters(_pipe, otherwise);
-      set_parameters(_pipe$1, then$);
-    } else if (!condition && $) {
-      let _pipe = component2;
-      let _pipe$1 = remove_parameters(_pipe, then$);
-      set_parameters(_pipe$1, otherwise);
-    } else {
+  return new ComponentParameterList(
+    (component2) => {
+      let callback = (a) => {
+        let condition = when(a);
+        let $2 = get_last_value(id);
+        if (condition && !$2) {
+          let _pipe = component2;
+          let _pipe$1 = remove_parameters(_pipe, otherwise);
+          set_parameters(_pipe$1, then$);
+        } else if (!condition && $2) {
+          let _pipe = component2;
+          let _pipe$1 = remove_parameters(_pipe, then$);
+          set_parameters(_pipe$1, otherwise);
+        } else {
+        }
+        return set_last_value(id, condition);
+      };
+      listen(state, callback);
+      let $ = when(value(state));
+      if ($) {
+        set_last_value(id, true);
+        return then$;
+      } else {
+        set_last_value(id, false);
+        return otherwise;
+      }
     }
-    return set_last_value(id, condition);
-  };
-  listen(state, callback);
-  let initial = (() => {
-    let $ = when(value(state));
-    if ($) {
-      set_last_value(id, true);
-      return then$;
-    } else {
-      set_last_value(id, false);
-      return otherwise;
-    }
-  })();
-  return new ParameterContainer(id, initial);
+  );
 }
 
 // build/dev/javascript/novdom/novdom/state_component.mjs

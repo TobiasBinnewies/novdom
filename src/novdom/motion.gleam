@@ -3,7 +3,8 @@ import novdom/attribute.{style}
 import novdom/component.{type Component, component, copy, document, set_child}
 import novdom/html.{div}
 import novdom/internals/parameter.{
-  type Event, type Parameter, ParameterContainer, get_component, set_parameters,
+  type Event, type Parameter, ComponentParameterList, ParameterList,
+  set_parameters,
 }
 import novdom/internals/utils
 import novdom/listener.{
@@ -68,32 +69,36 @@ pub fn ondrag(
 
   let drag_id = utils.unique_id()
 
-  ParameterContainer(drag_id, [
+  use self <- ComponentParameterList
+
+  let preview_comp =
+    case preview_type {
+      Preview(preview) -> [preview |> copy()]
+      Self -> [self |> copy]
+    }
+    |> component(drag_event_id, _)
+    |> set_parameters([
+      style([
+        #("position", "absolute"),
+        // #("bottom", "calc(100vh - var(--mouse-y) - 10px)"),
+        // #("right", "calc(100vw - var(--mouse-x) - 10px)"),
+        #("top", "var(--mouse-y)"),
+        #("left", "var(--mouse-x)"),
+        #("min-width", "20px"),
+        #("min-height", "20px"),
+      ]),
+    ])
+
+  [
     onmousedown(fn(_) {
-      let preview =
-        case preview_type {
-          Preview(preview) -> [preview |> copy()]
-          Self -> [drag_id |> get_component |> copy]
-        }
-        |> component(drag_event_id, _)
-        |> set_parameters([
-          style([
-            #("position", "absolute"),
-            // #("bottom", "calc(100vh - var(--mouse-y) - 10px)"),
-            // #("right", "calc(100vw - var(--mouse-x) - 10px)"),
-            #("top", "var(--mouse-y)"),
-            #("left", "var(--mouse-x)"),
-            #("min-width", "20px"),
-            #("min-height", "20px"),
-          ]),
-        ])
+      let preview = preview_comp |> copy()
 
       let event = DragEvent(value, preview, on_drop, on_cancel, False)
       state.update(drag_event, Some(event))
 
       on_drag(event)
     }),
-  ])
+  ]
 }
 
 pub fn ondrop(
@@ -111,7 +116,7 @@ pub fn ondrop(
     }
   })
 
-  ParameterContainer("", [
+  ParameterList([
     onemouseover(fn(_) {
       case state.value(drag_event) {
         Some(DragEvent(value, preview, cleanup, cancel, droppable)) -> {

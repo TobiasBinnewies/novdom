@@ -65,3 +65,9 @@ Use [lustre_dev_tools](https://hexdocs.pm/lustre_dev_tools/index.html) for build
   --> chain listener: let chain: fn(Listener) -> Listener = chain_listener.create(),
 
 TODO: Custom HTML Tags need a display attribute otherwise transform will not work
+
+
+Comp Map Usage:
+- References
+- Modifier (onrender, onunrender)
+- ParamterContainer (ondrag, ondrop - unused, state_parameter)

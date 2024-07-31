@@ -5,7 +5,7 @@ import novdom/component.{text}
 import novdom/framework
 import novdom/html.{div}
 import novdom/listener.{onclick}
-import novdom/reference.{Value}
+import novdom/reference.{Value, InnerHTML}
 
 pub fn main() {
   use <- framework.start()
@@ -14,7 +14,7 @@ pub fn main() {
 
   // parent component
   div(
-    [class("p-5 bg-blue-100"), reference.set(ref, Value)],
+    [class("p-5 bg-blue-100"), reference.set(ref, InnerHTML)],
     // child components
     [
       // button

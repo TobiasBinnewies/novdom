@@ -48,7 +48,6 @@ EventTarget.prototype.removeEventListener = function (...args) {
 
 export function init() {
   globalThis.state_map = new Map() // state_id: String => value: a
-  globalThis.parameter_component_map = new Map() // param_id: String => component_id: String
   globalThis.last_value_map = new Map() // id: String => last_value: a
   globalThis.state_listener = new Map()
 
@@ -120,15 +119,6 @@ export function create_copy(comp, new_id) {
 // }
 
 // ------------------------------- PARAMETER --------------------------------
-
-export function add_parameter(comp, param_id) {
-  globalThis.parameter_component_map.set(param_id, comp.id)
-  return comp
-}
-
-export function get_component_id(id) {
-  return globalThis.parameter_component_map.get(id)
-}
 
 // ------------------------------- ATTRIBUTES --------------------------------
 
@@ -503,14 +493,16 @@ export function get_last_value(id) {
 
 // ------------------------------- REFERENCE --------------------------------
 
-export function add_reference(ref, type) {
-  globalThis.reference_map.set(ref.id, type.constructor.name)
+export function add_reference(ref, component, type) {
+  globalThis.reference_map.set(ref.id, {
+    type: type.constructor.name,
+    component,
+  })
 }
 
 export function read_reference(ref) {
-  const type = globalThis.reference_map.get(ref.id)
-  const elem_id = globalThis.parameter_component_map.get(ref.id)
-  const elem = document.getElementById(elem_id)
+  const {type, component} = globalThis.reference_map.get(ref.id)
+  const elem = get_element(component)
   if (type === "InnerHTML") {
     return elem.innerHTML
   }

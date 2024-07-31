@@ -1,7 +1,7 @@
 import gleam/list
 import novdom/internals/parameter.{
-  type Parameter, Attribute, Listener, ParameterContainer, get_component,
-  remove_parameters, set_parameters,
+  type Parameter, Attribute, ComponentParameterList, Listener, remove_parameters,
+  set_parameters,
 }
 import novdom/internals/utils
 import novdom/state.{type State, listen, value}
@@ -14,11 +14,9 @@ pub fn if1(
   check(then)
 
   let id = utils.unique_id()
+  use component <- ComponentParameterList
 
   let callback = fn(a) {
-    let component =
-      id
-      |> get_component
     let condition = when(a)
     case condition, utils.get_last_value(id) {
       True, False -> {
@@ -35,7 +33,7 @@ pub fn if1(
   }
   listen(state, callback)
 
-  let initial = case when(value(state)) {
+  case when(value(state)) {
     True -> {
       utils.set_last_value(id, True)
       then
@@ -45,8 +43,6 @@ pub fn if1(
       []
     }
   }
-
-  ParameterContainer(id, initial)
 }
 
 pub fn if2(
@@ -58,11 +54,9 @@ pub fn if2(
   check(then)
 
   let id = utils.unique_id()
+  use component <- ComponentParameterList
 
   let callback = fn(a, b) {
-    let component =
-      id
-      |> get_component
     let condition = when(a, b)
     case condition, utils.get_last_value(id) {
       True, False -> {
@@ -90,7 +84,7 @@ pub fn if2(
   }
   listen(state2, callback2)
 
-  let initial = case when(value(state1), value(state2)) {
+  case when(value(state1), value(state2)) {
     True -> {
       utils.set_last_value(id, True)
       then
@@ -100,8 +94,6 @@ pub fn if2(
       []
     }
   }
-
-  ParameterContainer(id, initial)
 }
 
 pub fn ternary1(
@@ -114,11 +106,9 @@ pub fn ternary1(
   check(otherwise)
 
   let id = utils.unique_id()
+  use component <- ComponentParameterList
 
   let callback = fn(a) {
-    let component =
-      id
-      |> get_component
     let condition = when(a)
     case condition, utils.get_last_value(id) {
       True, False -> {
@@ -139,7 +129,7 @@ pub fn ternary1(
   }
   listen(state, callback)
 
-  let initial = case when(value(state)) {
+  case when(value(state)) {
     True -> {
       utils.set_last_value(id, True)
       then
@@ -149,16 +139,12 @@ pub fn ternary1(
       otherwise
     }
   }
-
-  ParameterContainer(id, initial)
 }
 
 pub fn utilize(state: State(a), do: fn(a) -> List(Parameter)) -> Parameter {
   let id = utils.unique_id()
+  use component <- ComponentParameterList
   let callback = fn(a) {
-    let component =
-      id
-      |> get_component
     let old = utils.get_last_value(id)
     let new = do(a)
     component
@@ -172,7 +158,7 @@ pub fn utilize(state: State(a), do: fn(a) -> List(Parameter)) -> Parameter {
 
   let initial = do(value(state))
   utils.set_last_value(id, initial)
-  ParameterContainer(id, initial)
+  initial
 }
 
 fn check(params: List(Parameter)) -> Nil {

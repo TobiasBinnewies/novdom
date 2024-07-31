@@ -1,4 +1,5 @@
-import novdom/internals/parameter.{type Parameter, ParameterContainer}
+import novdom/component.{type Component}
+import novdom/internals/parameter.{type Parameter, ComponentParameterList}
 import novdom/internals/utils
 
 pub type ReferenceType {
@@ -20,12 +21,17 @@ pub fn from_id(id: String) -> Reference {
 }
 
 pub fn set(ref: Reference, ref_type: ReferenceType) -> Parameter {
-  add_reference(ref, ref_type)
-  ParameterContainer(ref.id, [])
+  use component <- ComponentParameterList
+  add_reference(ref, component, ref_type)
+  []
 }
 
 @external(javascript, "../document_ffi.mjs", "read_reference")
 pub fn value(ref: Reference) -> String
 
 @external(javascript, "../document_ffi.mjs", "add_reference")
-fn add_reference(ref: Reference, ref_type: ReferenceType) -> Nil
+fn add_reference(
+  ref: Reference,
+  component: Component,
+  ref_type: ReferenceType,
+) -> Nil

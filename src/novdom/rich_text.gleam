@@ -1,7 +1,7 @@
 import novdom/attribute.{editable}
 import novdom/component.{type Component, component}
 import novdom/html.{div, p}
-import novdom/internals/parameter.{get_component}
+import novdom/internals/parameter
 import novdom/internals/utils
 import novdom/reference.{type Reference, InnerHTML}
 

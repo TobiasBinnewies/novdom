@@ -13,11 +13,16 @@ pub fn main() {
 pub fn framework_start_test() {
   selector_in_document("#_app_") |> should.be_true
 
-  const button = div([
-    onclick(fn(_) {
-      // callee erstellen
-    })
-  ], [])
+  let button =
+    div(
+      [
+        onclick(fn(_) {
+          todo
+          // callee erstellen
+        }),
+      ],
+      [],
+    )
 
   {
     use <- framework.start()
@@ -35,7 +40,6 @@ pub fn framework_start_test() {
 /// Also adds the global window and document object to the context.
 @external(javascript, "./test_ffi.mjs", "selector_in_document")
 pub fn selector_in_document(selector: String) -> Bool
-
 // add component in document --> check auf visibility
 // abfrage von parameter --> was ist genau applied
 

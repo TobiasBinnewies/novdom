@@ -2758,10 +2758,6 @@ function get_element(comp, children_comp) {
   add_to_unrendered(elem);
   return elem;
 }
-function add_parameter(comp, param_id) {
-  globalThis.parameter_component_map.set(param_id, comp.id);
-  return comp;
-}
 function add_attribute(comp, name, value2) {
   const elem = get_element(comp);
   handle_attribute(elem, name, value2, false);
@@ -3030,11 +3026,16 @@ var Listener = class extends CustomType {
     this.callback = callback;
   }
 };
-var ParameterContainer = class extends CustomType {
-  constructor(id, x1) {
+var ParameterList = class extends CustomType {
+  constructor(x0) {
     super();
-    this.id = id;
-    this[1] = x1;
+    this[0] = x0;
+  }
+};
+var ComponentParameterList = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
   }
 };
 function set_parameters(component2, params) {
@@ -3049,26 +3050,24 @@ function set_parameters(component2, params) {
         let name = param.name;
         let callback = param.callback;
         return add_listener(component2, name, callback);
-      } else if (param instanceof ParameterContainer) {
-        let id = param.id;
-        let params$1 = param[1];
-        let _pipe = component2;
-        let _pipe$1 = add_parameter(_pipe, id);
-        return set_parameters(_pipe$1, params$1);
+      } else if (param instanceof ParameterList) {
+        let params$1 = param[0];
+        return set_parameters(component2, params$1);
+      } else if (param instanceof ComponentParameterList) {
+        let f = param[0];
+        return set_parameters(component2, f(component2));
       } else {
-        let id = param.id;
-        let store = param[1];
-        if (store instanceof Render) {
-          let render_fn = store[0];
+        let f = param[0];
+        let $ = f(component2);
+        if ($ instanceof Render) {
+          let render_fn = $[0];
           let _pipe = component2;
-          let _pipe$1 = add_parameter(_pipe, id);
-          return add_render(_pipe$1, render_fn);
+          return add_render(_pipe, render_fn);
         } else {
-          let render_fn = store[0];
-          let trigger = store[1];
+          let render_fn = $[0];
+          let trigger = $[1];
           let _pipe = component2;
-          let _pipe$1 = add_parameter(_pipe, id);
-          return add_unrender(_pipe$1, render_fn, trigger);
+          return add_unrender(_pipe, render_fn, trigger);
         }
       }
     }

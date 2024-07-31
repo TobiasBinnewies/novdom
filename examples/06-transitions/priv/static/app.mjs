@@ -141,9 +141,6 @@ var Component = class extends CustomType {
 function document2() {
   return new Component("document", "");
 }
-function get_component(id) {
-  return new Component(id, "");
-}
 function component(tag, children) {
   let _pipe = create_id();
   let _pipe$1 = new Component(_pipe, tag);
@@ -2716,7 +2713,6 @@ EventTarget.prototype.removeEventListener = function(...args) {
 };
 function init2() {
   globalThis.state_map = /* @__PURE__ */ new Map();
-  globalThis.parameter_component_map = /* @__PURE__ */ new Map();
   globalThis.last_value_map = /* @__PURE__ */ new Map();
   globalThis.state_listener = /* @__PURE__ */ new Map();
   globalThis.reference_map = /* @__PURE__ */ new Map();
@@ -2752,13 +2748,6 @@ function get_element(comp, children_comp) {
   }
   add_to_unrendered(elem);
   return elem;
-}
-function add_parameter(comp, param_id) {
-  globalThis.parameter_component_map.set(param_id, comp.id);
-  return comp;
-}
-function get_component_id(id) {
-  return globalThis.parameter_component_map.get(id);
 }
 function add_attribute(comp, name, value2) {
   const elem = get_element(comp);
@@ -2898,15 +2887,17 @@ function get_unrender_callback_fn(elem, trigger) {
   switch (trigger.constructor.name) {
     case "Start":
       return (onend2, onnew) => {
-        if (elem !== elem.renderRoot)
+        if (elem !== elem.renderRoot) {
           return;
+        }
         onnew();
         elem.addEventListener("transitionend", create_once(onend2));
       };
     case "End":
       return (onend2, onnew) => {
-        if (elem !== elem.renderRoot)
+        if (elem !== elem.renderRoot) {
           return;
+        }
         elem.ontransitionend = () => {
           onend2();
           onnew();
@@ -3038,24 +3029,23 @@ var Listener = class extends CustomType {
   }
 };
 var Modifier = class extends CustomType {
-  constructor(id, x1) {
+  constructor(x0) {
     super();
-    this.id = id;
-    this[1] = x1;
+    this[0] = x0;
   }
 };
-var ParameterContainer = class extends CustomType {
-  constructor(id, x1) {
+var ParameterList = class extends CustomType {
+  constructor(x0) {
     super();
-    this.id = id;
-    this[1] = x1;
+    this[0] = x0;
   }
 };
-function get_component2(param_id) {
-  let _pipe = param_id;
-  let _pipe$1 = get_component_id(_pipe);
-  return get_component(_pipe$1);
-}
+var ComponentParameterList = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
 function set_parameters(component2, params) {
   each(
     params,
@@ -3068,26 +3058,24 @@ function set_parameters(component2, params) {
         let name = param.name;
         let callback = param.callback;
         return add_listener(component2, name, callback);
-      } else if (param instanceof ParameterContainer) {
-        let id = param.id;
-        let params$1 = param[1];
-        let _pipe = component2;
-        let _pipe$1 = add_parameter(_pipe, id);
-        return set_parameters(_pipe$1, params$1);
+      } else if (param instanceof ParameterList) {
+        let params$1 = param[0];
+        return set_parameters(component2, params$1);
+      } else if (param instanceof ComponentParameterList) {
+        let f = param[0];
+        return set_parameters(component2, f(component2));
       } else {
-        let id = param.id;
-        let store = param[1];
-        if (store instanceof Render) {
-          let render_fn2 = store[0];
+        let f = param[0];
+        let $ = f(component2);
+        if ($ instanceof Render) {
+          let render_fn2 = $[0];
           let _pipe = component2;
-          let _pipe$1 = add_parameter(_pipe, id);
-          return add_render(_pipe$1, render_fn2);
+          return add_render(_pipe, render_fn2);
         } else {
-          let render_fn2 = store[0];
-          let trigger = store[1];
+          let render_fn2 = $[0];
+          let trigger = $[1];
           let _pipe = component2;
-          let _pipe$1 = add_parameter(_pipe, id);
-          return add_unrender(_pipe$1, render_fn2, trigger);
+          return add_unrender(_pipe, render_fn2, trigger);
         }
       }
     }
@@ -3233,21 +3221,26 @@ function start(component2) {
 }
 
 // build/dev/javascript/novdom/novdom/modifier.mjs
-function render_fn(comp_id, parameters) {
+function render_fn(component2, parameters) {
   return () => {
-    let _pipe = comp_id;
-    let _pipe$1 = get_component2(_pipe);
-    set_parameters(_pipe$1, parameters);
+    let _pipe = component2;
+    set_parameters(_pipe, parameters);
     return void 0;
   };
 }
 function onrender(parameters) {
-  let id = create_id();
-  return new Modifier(id, new Render(render_fn(id, parameters)));
+  return new Modifier(
+    (component2) => {
+      return new Render(render_fn(component2, parameters));
+    }
+  );
 }
 function onunrender(parameters, trigger) {
-  let id = create_id();
-  return new Modifier(id, new Unrender(render_fn(id, parameters), trigger));
+  return new Modifier(
+    (component2) => {
+      return new Unrender(render_fn(component2, parameters), trigger);
+    }
+  );
 }
 var onend = new End();
 var onstart = new Start();

@@ -1,5 +1,5 @@
 import gleam/list
-import novdom/component.{type Component, get_component as get_comp}
+import novdom/component.{type Component}
 
 pub type Event
 
@@ -18,9 +18,11 @@ pub type Parameter {
   Listener(name: String, callback: fn(Event) -> Nil)
 
   /// *WARNING:* Cannot return modifier
-  Modifier(id: String, ModifierStore)
+  Modifier(fn(Component) -> ModifierStore)
 
-  ParameterContainer(id: String, List(Parameter))
+  ParameterList(List(Parameter))
+
+  ComponentParameterList(fn(Component) -> List(Parameter))
 }
 
 pub fn set_parameters(
@@ -33,21 +35,18 @@ pub fn set_parameters(
     case param {
       Attribute(key, value) -> add_attribute(component, key, value)
       Listener(name, callback) -> add_listener(component, name, callback)
-      ParameterContainer(id, params) -> {
-        component
-        |> add_component_id(id)
-        |> set_parameters(params)
-      }
-      Modifier(id, store) ->
-        case store {
+      ParameterList(params) -> set_parameters(component, params)
+      ComponentParameterList(f) -> set_parameters(component, f(component))
+      Modifier(f) ->
+        case f(component) {
           Render(render_fn) -> {
             component
-            |> add_component_id(id)
+            // |> add_component_id(id)
             |> add_render(render_fn)
           }
           Unrender(render_fn, trigger) -> {
             component
-            |> add_component_id(id)
+            // |> add_component_id(id)
             |> add_unrender(render_fn, trigger)
           }
         }
@@ -70,12 +69,6 @@ pub fn remove_parameters(
     }
   }
   component
-}
-
-pub fn get_component(param_id: String) -> Component {
-  param_id
-  |> get_component_id
-  |> get_comp
 }
 
 @external(javascript, "../../document_ffi.mjs", "add_attribute")
@@ -101,12 +94,6 @@ pub fn remove_listener(
   name: String,
   callback: fn(Event) -> Nil,
 ) -> Component
-
-@external(javascript, "../../document_ffi.mjs", "add_parameter")
-fn add_component_id(comp: Component, id: String) -> Component
-
-@external(javascript, "../../document_ffi.mjs", "get_component_id")
-fn get_component_id(param_id: String) -> String
 
 @external(javascript, "../../document_ffi.mjs", "add_render")
 fn add_render(comp: Component, callback: fn() -> Nil) -> Component

@@ -1060,9 +1060,6 @@ var Component = class extends CustomType {
 function document2() {
   return new Component("document", "");
 }
-function get_component(id) {
-  return new Component(id, "");
-}
 function component(tag, children) {
   let _pipe = create_id();
   let _pipe$1 = new Component(_pipe, tag);
@@ -3617,6 +3614,32 @@ String.prototype.smartSplit = function(separator) {
 Array.prototype.toList = function() {
   return List.fromArray(this);
 };
+var old_addEventListener = EventTarget.prototype.addEventListener;
+EventTarget.prototype.addEventListener = function(...args) {
+  old_addEventListener.apply(this, args);
+  const name = args[0] + "Listeners";
+  if (this[name] === void 0) {
+    this[name] = [args[1]];
+    return;
+  }
+  this[name] = [args[1], ...this[name]];
+};
+var old_removeEventListener = EventTarget.prototype.removeEventListener;
+EventTarget.prototype.removeEventListener = function(...args) {
+  const name = args[0] + "Listeners";
+  if (args.length === 1) {
+    if (this[name] === void 0) {
+      return;
+    }
+    this[name].forEach((l) => this.removeEventListener(args[0], l));
+    return;
+  }
+  old_removeEventListener.apply(this, args);
+  if (this[name] === void 0) {
+    return;
+  }
+  this[name] = this[name].filter((l) => l !== args[1]);
+};
 function init2() {
   globalThis.state_map = /* @__PURE__ */ new Map();
   globalThis.parameter_component_map = /* @__PURE__ */ new Map();
@@ -3662,13 +3685,6 @@ function create_copy(comp, new_id) {
   copy2.setAttribute("id", new_id);
   add_to_unrendered(copy2);
   return { id: new_id, tag: comp.tag };
-}
-function add_parameter(comp, param_id) {
-  globalThis.parameter_component_map.set(param_id, comp.id);
-  return comp;
-}
-function get_component_id(id) {
-  return globalThis.parameter_component_map.get(id);
 }
 function add_attribute(comp, name, value2) {
   const elem = get_element(comp);
@@ -3757,24 +3773,35 @@ function add_render(comp, onrender) {
 }
 function add_unrender(comp, onunrender, trigger) {
   const elem = get_element(comp);
-  const callback = (onend, onnew) => {
-    switch (trigger.constructor.name) {
-      case "Start":
+  const unrender_callback_fn = get_unrender_callback_fn(elem, trigger);
+  elem.onunrender = (onend, onnew) => {
+    unrender_callback_fn(onend, onnew);
+    onunrender();
+  };
+  return comp;
+}
+function get_unrender_callback_fn(elem, trigger) {
+  switch (trigger.constructor.name) {
+    case "Start":
+      return (onend, onnew) => {
+        if (elem !== elem.renderRoot) {
+          return;
+        }
         onnew();
-        add_listener(comp, "transitionend", create_once(onend));
-        break;
-      case "End":
-        elem.ontransitionend = (e) => {
+        elem.addEventListener("transitionend", create_once(onend));
+      };
+    case "End":
+      return (onend, onnew) => {
+        if (elem !== elem.renderRoot) {
+          return;
+        }
+        elem.ontransitionend = () => {
           onend();
           onnew();
           elem.ontransitionend = null;
         };
-        break;
-    }
-    onunrender();
-  };
-  elem.onunrender = callback;
-  return comp;
+      };
+  }
 }
 function execute_render(elem) {
   execute_render_iter(elem);
@@ -3881,18 +3908,18 @@ var Listener = class extends CustomType {
     this.callback = callback;
   }
 };
-var ParameterContainer = class extends CustomType {
-  constructor(id, x1) {
+var ParameterList = class extends CustomType {
+  constructor(x0) {
     super();
-    this.id = id;
-    this[1] = x1;
+    this[0] = x0;
   }
 };
-function get_component2(param_id) {
-  let _pipe = param_id;
-  let _pipe$1 = get_component_id(_pipe);
-  return get_component(_pipe$1);
-}
+var ComponentParameterList = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
 function set_parameters(component2, params) {
   each(
     params,
@@ -3905,26 +3932,24 @@ function set_parameters(component2, params) {
         let name = param.name;
         let callback = param.callback;
         return add_listener(component2, name, callback);
-      } else if (param instanceof ParameterContainer) {
-        let id = param.id;
-        let params$1 = param[1];
-        let _pipe = component2;
-        let _pipe$1 = add_parameter(_pipe, id);
-        return set_parameters(_pipe$1, params$1);
+      } else if (param instanceof ParameterList) {
+        let params$1 = param[0];
+        return set_parameters(component2, params$1);
+      } else if (param instanceof ComponentParameterList) {
+        let f = param[0];
+        return set_parameters(component2, f(component2));
       } else {
-        let id = param.id;
-        let store = param[1];
-        if (store instanceof Render) {
-          let render_fn = store[0];
+        let f = param[0];
+        let $ = f(component2);
+        if ($ instanceof Render) {
+          let render_fn = $[0];
           let _pipe = component2;
-          let _pipe$1 = add_parameter(_pipe, id);
-          return add_render(_pipe$1, render_fn);
+          return add_render(_pipe, render_fn);
         } else {
-          let render_fn = store[0];
-          let trigger = store[1];
+          let render_fn = $[0];
+          let trigger = $[1];
           let _pipe = component2;
-          let _pipe$1 = add_parameter(_pipe, id);
-          return add_unrender(_pipe$1, render_fn, trigger);
+          return add_unrender(_pipe, render_fn, trigger);
         }
       }
     }
@@ -4021,55 +4046,59 @@ var drag_event_id = "_DRAGGABLE_";
 function ondrag(preview_type, value2, on_drag, on_cancel, on_drop) {
   let drag_event = from_id(drag_event_id);
   let drag_id = create_id();
-  return new ParameterContainer(
-    drag_id,
-    toList([
-      onmousedown(
-        (_) => {
-          let preview = (() => {
-            let _pipe = (() => {
-              if (preview_type instanceof Preview) {
-                let preview2 = preview_type[0];
-                return toList([
-                  (() => {
-                    let _pipe2 = preview2;
-                    return copy(_pipe2);
-                  })()
-                ]);
-              } else {
-                return toList([
-                  (() => {
-                    let _pipe2 = drag_id;
-                    let _pipe$12 = get_component2(_pipe2);
-                    return copy(_pipe$12);
-                  })()
-                ]);
-              }
-            })();
-            let _pipe$1 = ((_capture) => {
-              return component(drag_event_id, _capture);
-            })(_pipe);
-            return set_parameters(
-              _pipe$1,
+  return new ComponentParameterList(
+    (self) => {
+      let preview_comp = (() => {
+        let _pipe = (() => {
+          if (preview_type instanceof Preview) {
+            let preview = preview_type[0];
+            return toList([
+              (() => {
+                let _pipe2 = preview;
+                return copy(_pipe2);
+              })()
+            ]);
+          } else {
+            return toList([
+              (() => {
+                let _pipe2 = self;
+                return copy(_pipe2);
+              })()
+            ]);
+          }
+        })();
+        let _pipe$1 = ((_capture) => {
+          return component(drag_event_id, _capture);
+        })(_pipe);
+        return set_parameters(
+          _pipe$1,
+          toList([
+            style(
               toList([
-                style(
-                  toList([
-                    ["position", "absolute"],
-                    ["top", "var(--mouse-y)"],
-                    ["left", "var(--mouse-x)"],
-                    ["min-width", "20px"],
-                    ["min-height", "20px"]
-                  ])
-                )
+                ["position", "absolute"],
+                ["top", "var(--mouse-y)"],
+                ["left", "var(--mouse-x)"],
+                ["min-width", "20px"],
+                ["min-height", "20px"]
               ])
-            );
-          })();
-          let event = new DragEvent(value2, preview, on_drop, on_cancel, false);
-          update2(drag_event, new Some(event));
-          return on_drag(event);
-        }
-      )
-    ])
+            )
+          ])
+        );
+      })();
+      return toList([
+        onmousedown(
+          (_) => {
+            let preview = (() => {
+              let _pipe = preview_comp;
+              return copy(_pipe);
+            })();
+            let event = new DragEvent(value2, preview, on_drop, on_cancel, false);
+            update2(drag_event, new Some(event));
+            return on_drag(event);
+          }
+        )
+      ]);
+    }
   );
 }
 function cleanup() {
@@ -4127,8 +4156,7 @@ function ondrop(on_drag, on_hover, on_drop) {
       }
     }
   );
-  return new ParameterContainer(
-    "",
+  return new ParameterList(
     toList([
       onemouseover(
         (_) => {
