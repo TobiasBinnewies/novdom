@@ -115,13 +115,14 @@ export function create_text_element(value) {
   return new Component(id, elem)
 }
 
-export function create_copy(comp, new_id) {
+export function create_copy(comp) {
+  const id = unique_id()
   const elem = comp.element
-  
-  const copy = elem.cloneNode(true)
-  copy.setAttribute("id", new_id)
 
-  return new Component(new_id, copy)
+  const copy = elem.cloneNode(true)
+  copy.setAttribute("id", id)
+
+  return new Component(id, copy)
 }
 
 // ------------------------------- PARAMETER --------------------------------

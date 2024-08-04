@@ -11,11 +11,6 @@ pub type Component {
   Component(id: ComponentId, element: HTMLElement)
 }
 
-pub fn copy(comp: Component) -> Component {
-  let id = utils.unique_id()
-  create_copy(comp, id)
-}
-
 @external(javascript, "../document_ffi.mjs", "create_element")
 pub fn component(tag: String, children: List(Component)) -> Component
 
@@ -24,7 +19,7 @@ pub fn component(tag: String, children: List(Component)) -> Component
 pub fn text(text: String) -> Component
 
 @external(javascript, "../document_ffi.mjs", "create_copy")
-fn create_copy(comp: Component, id: String) -> Component
+pub fn copy(comp: Component) -> Component
 
 @external(javascript, "../document_ffi.mjs", "set_child")
 pub fn set_child(comp: Component, children: Component) -> Component
