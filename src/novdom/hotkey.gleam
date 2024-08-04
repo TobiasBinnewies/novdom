@@ -1,8 +1,8 @@
 import gleam/list
-import novdom/component.{type Component, document}
+import novdom/component.{type Component}
 import novdom/internals/parameter.{type Event, set_parameters}
 import novdom/internals/utils
-import novdom/listener.{onkeydown}
+import novdom/listener.{global_listener, onkeydown}
 
 pub type Modifier {
   Shift
@@ -25,9 +25,7 @@ pub type HotkeyOption {
 }
 
 pub fn init() -> Nil {
-  document()
-  |> set_parameters([onkeydown(keypress_callback)])
-  Nil
+  global_listener(onkeydown(keypress_callback))
 }
 
 pub fn configure_ids(config: List(#(HotkeyId, List(Hotkey)))) -> Nil {

@@ -1,4 +1,8 @@
-import novdom/internals/parameter.{type Event, type Parameter, Listener}
+import novdom/internals/parameter.{
+  type Event, type Parameter, Listener,
+}
+
+pub const global_listener = parameter.global_listener
 
 pub fn onclick(callback: fn(Event) -> Nil) -> Parameter {
   Listener("click", callback)

@@ -1,3 +1,4 @@
+import gleam/io
 import novdom/attribute.{hidden}
 import novdom/component.{type Component, component, set_child}
 import novdom/internals/parameter.{set_parameters}
@@ -124,8 +125,9 @@ pub fn utilize(state: State(a), do: fn(a) -> Component) -> Component {
   let comp = component(state_component_tag, [children])
 
   let callback = fn(a) {
+    let do = do(a)
     comp
-    |> set_child(do(a))
+    |> set_child(do)
     Nil
   }
   listen(state, callback)

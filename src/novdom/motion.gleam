@@ -1,6 +1,6 @@
 import gleam/option.{type Option, None, Some}
 import novdom/attribute.{style}
-import novdom/component.{type Component, component, copy, document, set_child}
+import novdom/component.{type Component, component, copy, set_child}
 import novdom/html.{div}
 import novdom/internals/parameter.{
   type Event, type Parameter, ComponentParameterList, ParameterList,
@@ -8,7 +8,7 @@ import novdom/internals/parameter.{
 }
 import novdom/internals/utils
 import novdom/listener.{
-  onemouseover, onmousedown, onmousemove, onmouseout, onmouseup,
+  global_listener, onemouseover, onmousedown, onmousemove, onmouseout, onmouseup,
 }
 import novdom/render
 import novdom/state.{type State}
@@ -38,16 +38,15 @@ pub fn init() {
   let drag_event: State(Option(DragEvent(a))) =
     state.create_with_id(drag_event_id, None)
 
-  document()
-  |> set_parameters([
+  global_listener(onmousemove(fn(e) { store_mouse_position(e) }))
+  global_listener(
     onmouseup(fn(_) {
       case state.value(drag_event) {
         Some(event) if !event.droppable -> event.cancel(event, cleanup())
         _ -> Nil
       }
     }),
-    onmousemove(fn(e) { store_mouse_position(e) }),
-  ])
+  )
 
   state_component.utilize(drag_event, fn(event) {
     case event {
