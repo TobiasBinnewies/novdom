@@ -60,3 +60,27 @@ pub fn textln(parameters: List(Parameter), value: String) -> Component {
   component.text(value)
   |> set_parameters([style([#("display", "block")]), ..parameters])
 }
+
+pub fn tr(parameters: List(Parameter), children: List(Component)) -> Component {
+  component("tr", children)
+  |> set_parameters(parameters)
+}
+
+pub fn td(parameters: List(Parameter), children: List(Component)) -> Component {
+  component("td", children)
+  |> set_parameters(parameters)
+}
+
+pub fn a(parameters: List(Parameter), children: List(Component)) -> Component {
+  component("a", children)
+  |> set_parameters(parameters)
+}
+
+pub fn custom(
+  tag: String,
+  parameters: List(Parameter),
+  children: List(Component),
+) -> Component {
+  component(tag, children)
+  |> set_parameters(parameters)
+}
