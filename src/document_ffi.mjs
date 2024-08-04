@@ -83,7 +83,7 @@ export function add_to_viewport(comp, id) {
   // render_element(elem)
   const viewport = document.getElementById(id)
   viewport.appendChild(elem)
-  execute_render(elem)
+  execute_render(elem, true)
 }
 
 // export function clear_viewport(id) {
@@ -117,10 +117,11 @@ export function create_text_element(value) {
 
 export function create_copy(comp, new_id) {
   const elem = comp.element
+  
   const copy = elem.cloneNode(true)
   copy.setAttribute("id", new_id)
-  add_to_unrendered(copy)
-  return { id: new_id, tag: comp.tag }
+
+  return new Component(new_id, copy)
 }
 
 // ------------------------------- PARAMETER --------------------------------
@@ -399,7 +400,15 @@ function get_unrender_callback_fn(elem, trigger) {
 //   }
 // }
 
-function execute_render(elem) {
+function execute_render(elem, recursive = false) {
+  if (recursive) {
+    ;[...elem.children].forEach((child) => {
+      if (child.hidden) {
+        return
+      }
+      execute_render(child, true)
+    })
+  }
   if (elem.onrender) {
     requestAnimationFrame(() => {
       setTimeout(() => {
@@ -408,22 +417,6 @@ function execute_render(elem) {
     })
   }
 }
-
-// function execute_render_iter(elem) {
-//   ;[...elem.children].forEach((child) => {
-//     if (child.hidden) {
-//       return
-//     }
-//     execute_render_iter(child)
-//   })
-//   if (elem.onrender) {
-//     requestAnimationFrame(() => {
-//       setTimeout(() => {
-//         elem.onrender()
-//       })
-//     })
-//   }
-// }
 
 function execute_unrender(elem, onend, onnew) {
   if (!elem) {
@@ -497,7 +490,7 @@ export function add_reference(ref, component, type) {
 
 export function read_reference(ref) {
   const { type, component } = globalThis.reference_map.get(ref.id)
-  const elem = comp.element
+  const elem = component.element
   if (type === "InnerHTML") {
     return elem.innerHTML
   }
