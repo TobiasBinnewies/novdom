@@ -1,6 +1,5 @@
 import gleam/list
-import novdom/component.{type Component}
-import novdom/internals/parameter.{type Event, set_parameters}
+import novdom/internals/parameter.{type Event}
 import novdom/internals/utils
 import novdom/listener.{global_listener, onkeydown}
 

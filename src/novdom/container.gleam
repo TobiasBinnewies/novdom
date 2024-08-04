@@ -3,8 +3,6 @@ import novdom/attribute.{style}
 import novdom/component.{type Component}
 import novdom/html.{div}
 
-const stack_tag = "_STACK_"
-
 // const item_tag = "_ITEM_"
 
 pub type Alignment {
@@ -44,11 +42,6 @@ pub fn vstack(
   spacing: Spacing,
   children: List(Component),
 ) -> Component {
-  let align = case alignment {
-    Left -> "flex-start"
-    Right -> "flex-end"
-    _ -> "center"
-  }
   stack(VerticalDirection, alignment, spacing, NoScroll, children)
 }
 
@@ -57,11 +50,6 @@ pub fn vscroll(
   spacing: Spacing,
   children: List(Component),
 ) -> Component {
-  let align = case alignment {
-    Left -> "flex-start"
-    Right -> "flex-end"
-    _ -> "center"
-  }
   stack(VerticalDirection, alignment, spacing, VerticalScroll, children)
 }
 
@@ -70,11 +58,6 @@ pub fn hstack(
   spacing: Spacing,
   children: List(Component),
 ) -> Component {
-  let align = case alignment {
-    Top -> "flex-start"
-    Bottom -> "flex-end"
-    _ -> "center"
-  }
   stack(HorizontalDirection, alignment, spacing, NoScroll, children)
 }
 
@@ -181,19 +164,18 @@ pub fn stack(
     NoScroll -> #("overflow", "hidden")
   }
 
-  let align =
-    div(
-      [
-        style([
-          #("height", "100%"),
-          #("width", "100%"),
-          #("display", "flex"),
-          #("flex-direction", direction),
-          #("align-items", align),
-          overflow,
-          spacing,
-        ]),
-      ],
-      children,
-    )
+  div(
+    [
+      style([
+        #("height", "100%"),
+        #("width", "100%"),
+        #("display", "flex"),
+        #("flex-direction", direction),
+        #("align-items", align),
+        overflow,
+        spacing,
+      ]),
+    ],
+    children,
+  )
 }

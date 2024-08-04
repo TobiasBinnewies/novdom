@@ -1,12 +1,11 @@
 import gleam/option.{type Option, None, Some}
 import novdom/attribute.{style}
-import novdom/component.{type Component, component, copy, set_child}
+import novdom/component.{type Component, component, copy}
 import novdom/html.{div}
 import novdom/internals/parameter.{
   type Event, type Parameter, ComponentParameterList, ParameterList,
   set_parameters,
 }
-import novdom/internals/utils
 import novdom/listener.{
   global_listener, onemouseover, onmousedown, onmousemove, onmouseout, onmouseup,
 }
@@ -65,8 +64,6 @@ pub fn ondrag(
   on_drop: fn(DragEvent(a)) -> Nil,
 ) -> Parameter {
   let drag_event = state.from_id(drag_event_id)
-
-  let drag_id = utils.unique_id()
 
   use self <- ComponentParameterList
 

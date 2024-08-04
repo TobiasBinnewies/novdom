@@ -1,8 +1,7 @@
 import novdom/component.{type Component}
 import novdom/internals/parameter.{
-  type Event, type Parameter, Modifier, Render, Unrender, set_parameters,
+  type Parameter, Modifier, Render, Unrender, set_parameters,
 }
-import novdom/internals/utils
 
 pub type TriggerOption =
   parameter.TriggerOption

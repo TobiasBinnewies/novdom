@@ -1,10 +1,6 @@
-import gleam/io
-import novdom/attribute.{hidden}
 import novdom/component.{type Component, component, set_child}
-import novdom/internals/parameter.{set_parameters}
 import novdom/internals/utils
 import novdom/state.{type State, listen, value}
-import novdom/state_parameter
 
 const state_component_tag = "_STATE_COMPONENT_"
 

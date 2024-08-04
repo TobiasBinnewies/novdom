@@ -1,11 +1,4 @@
-import gleam/function
 import novdom/internals/utils
-
-const text_tag = "p"
-
-//"_TEXT_"
-
-const html_tag = "_HTML_"
 
 pub type HTMLElement {
   HTMLElement
@@ -16,7 +9,6 @@ pub type ComponentId =
 
 pub type Component {
   Component(id: ComponentId, element: HTMLElement)
-  // TextContainer(id: ComponentId, attributes: List(Attribute), value: String)
 }
 
 pub fn copy(comp: Component) -> Component {
