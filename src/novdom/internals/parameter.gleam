@@ -71,6 +71,14 @@ pub fn remove_parameters(
   component
 }
 
+pub fn global_listener(listener: Parameter) -> Nil {
+  let assert Listener(name, callback) = listener
+  add_global_listener(name, callback)
+}
+
+@external(javascript, "../../document_ffi.mjs", "add_global_listener")
+pub fn add_global_listener(name: String, callback: fn(Event) -> Nil) -> Nil
+
 @external(javascript, "../../document_ffi.mjs", "add_attribute")
 pub fn add_attribute(comp: Component, name: String, value: String) -> Component
 

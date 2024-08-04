@@ -2,7 +2,9 @@
 import { List } from "../prelude.mjs"
 import { Hotkey, Shift, Alt, Short } from "./novdom/hotkey.mjs"
 import { Start, End } from "./novdom/internals/parameter.mjs"
+import { Component } from "./novdom/component.mjs"
 import { twMerge } from "tailwind-merge"
+import { unique_id } from "./utils_ffi.mjs"
 
 const TEXT = "_TEXT_"
 const HTML = "_HTML_"
@@ -13,6 +15,20 @@ String.prototype.smartSplit = function (separator) {
 
 Array.prototype.toList = function () {
   return List.fromArray(this)
+}
+
+List.prototype.map = function (fn) {
+  let arr = []
+  for (const item of this) {
+    arr.push(fn(item))
+  }
+  return arr
+}
+
+List.prototype.forEach = function (fn) {
+  for (const item of this) {
+    fn(item)
+  }
 }
 
 const old_addEventListener = EventTarget.prototype.addEventListener
@@ -63,7 +79,8 @@ function add_to_unrendered(elem) {
 }
 
 export function add_to_viewport(comp, id) {
-  const elem = get_element(comp)
+  const elem = comp.element
+  // render_element(elem)
   const viewport = document.getElementById(id)
   viewport.appendChild(elem)
   execute_render(elem)
@@ -76,73 +93,48 @@ export function add_to_viewport(comp, id) {
 
 // ------------------------------- ELEMENT --------------------------------
 
-export function get_element(comp, children_comp) {
-  if (comp.id === "document") {
-    return document
-  }
-  // if (comp.id === HTML) {
-  //   const html = document.createElement(HTML)
-  //   html.insertAdjacentHTML("beforeend", comp.tag)
-  //   return html
-  // }
-  const existing = document.getElementById(comp.id)
-  if (existing) {
-    return existing
-  }
-  const elem = document.createElement(comp.tag)
-  elem.setAttribute("id", comp.id)
+export function create_element(tag, children) {
+  const id = unique_id()
 
-  try {
-    const children = children_comp.toArray().map(get_element)
-    elem.replaceChildren(...children)
-  } catch (_) {
-    // throws if children_comp is not a list, e.g. TEXT
-    const text = document.createTextNode(children_comp.replace(" ", "\u00A0"))
-    elem.replaceChildren(text)
-  }
-  add_to_unrendered(elem)
-  return elem
+  const elem = document.createElement(tag)
+  elem.setAttribute("id", id)
+
+  children.forEach((child) => elem.appendChild(child.element))
+
+  return new Component(id, elem)
+}
+
+export function create_text_element(value) {
+  const id = unique_id()
+
+  const elem = document.createElement("p")
+  elem.setAttribute("id", id)
+
+  elem.textContent = value
+
+  return new Component(id, elem)
 }
 
 export function create_copy(comp, new_id) {
-  const elem = get_element(comp)
+  const elem = comp.element
   const copy = elem.cloneNode(true)
   copy.setAttribute("id", new_id)
   add_to_unrendered(copy)
   return { id: new_id, tag: comp.tag }
 }
 
-// export function set_inner_text(comp, text) {
-//   const elem = get_element(comp)
-//   elem.innerText = text
-//   return comp
-// }
-
 // ------------------------------- PARAMETER --------------------------------
 
 // ------------------------------- ATTRIBUTES --------------------------------
 
-// export function set_attributes(comp, attributes) {
-//   const elem = get_element(comp)
-//   // remove all attributes except id
-//   const keys = Object.keys(elem.attributes)
-//   keys.forEach((key) => {
-//     if (elem.attributes[key].name !== "id") {
-//       elem.removeAttribute(elem.attributes[key].name)
-//     }
-//   })
-//   attributes.toArray().forEach((attr) => add_attribute(comp, attr))
-//   return comp
-// }
-
 export function add_attribute(comp, name, value) {
-  const elem = get_element(comp)
+  const elem = comp.element
   handle_attribute(elem, name, value, false)
   return comp
 }
 
 export function remove_attribute(comp, name, value) {
-  const elem = get_element(comp)
+  const elem = comp.element
   handle_attribute(elem, name, value, true)
   return comp
 }
@@ -197,7 +189,7 @@ function handle_attribute(elem, name, value, remove) {
 }
 
 export function show(comp) {
-  const elem = get_element(comp)
+  const elem = comp.element
   elem.ontransitionend = null
   elem.removeEventListener("transitionend")
   elem.removeEventListener("transitionstart")
@@ -206,8 +198,7 @@ export function show(comp) {
 }
 
 export function hide(comp, initial = false) {
-  const elem = get_element(comp)
-  console.log("show", elem.id)
+  const elem = comp.element
   if (initial) {
     elem.hidden = true
     return
@@ -222,7 +213,7 @@ export function hide(comp, initial = false) {
 }
 
 export function swap(this_comp, for_comp) {
-  const this_elem = get_element(this_comp)
+  const this_elem = this_comp.element
   if (this_elem.hidden) {
     show(for_comp)
     return
@@ -241,13 +232,13 @@ export function swap(this_comp, for_comp) {
 // ------------------------------- LISTENER --------------------------------
 
 export function add_listener(comp, name, callback) {
-  const elem = get_element(comp)
+  const elem = comp.element
   elem.addEventListener(name, callback)
   return comp
 }
 
 export function remove_listener(comp, name, callback) {
-  const elem = get_element(comp)
+  const elem = comp.element
   elem.removeEventListener(name, callback)
   return comp
 }
@@ -260,15 +251,20 @@ export function create_once(callback) {
   return fn
 }
 
+export function add_global_listener(name, callback) {
+  document.addEventListener(name, callback)
+}
+
 // ------------------------------- CHILDREN --------------------------------
 
 /**
  * WARNING: Can only be used if the parent has only one child
  */
 export function set_child(comp, child_comp) {
-  const elem = get_element(comp)
+  const elem = comp.element
   const old_child = elem.lastChild
-  const new_child = get_element(child_comp)
+  const new_child = child_comp.element
+  // render_element(new_child)
   execute_unrender(
     old_child,
     () => {
@@ -283,8 +279,8 @@ export function set_child(comp, child_comp) {
 }
 
 // export function insert_child_at(comp, child_comp, at) {
-//   const elem = get_element(comp)
-//   const child = get_element(child_comp)
+//   const elem = comp.element
+//   const child = comp.element
 //   if (elem.children.length <= at) {
 //     elem.appendChild(child)
 //     return comp
@@ -294,8 +290,8 @@ export function set_child(comp, child_comp) {
 // }
 
 // export function insert_child_before(comp, child_comp, before_id) {
-//   const elem = get_element(comp)
-//   const child = get_element(child_comp)
+//   const elem = comp.element
+//   const child = comp.element
 //   const before_elem = elem.children[before_id]
 //   if (!before_elem) {
 //     console.error("insert_child_before: element not found: " + before_id)
@@ -306,7 +302,7 @@ export function set_child(comp, child_comp) {
 // }
 
 // export function remove_child_at(comp, at) {
-//   const elem = get_element(comp)
+//   const elem = comp.element
 //   if (elem.children.length <= at) {
 //     console.error("remove_child_at: index out of bound: " + at)
 //     return comp
@@ -316,7 +312,7 @@ export function set_child(comp, child_comp) {
 // }
 
 export function remove_child(comp) {
-  const elem = get_element(comp)
+  const elem = comp.element
   const old_child = elem.lastChild
   execute_unrender(
     old_child,
@@ -329,10 +325,8 @@ export function remove_child(comp) {
 }
 
 export function swap_children(comp1, comp2) {
-  const elem1 = get_element(comp1)
-  const elem2 = get_element(comp2)
-  const child1 = elem1.lastChild
-  const child2 = elem2.lastChild
+  const elem1 = comp1.element
+  const elem2 = comp2.element
   execute_unrender(
     old_child1,
     () => {
@@ -346,25 +340,21 @@ export function swap_children(comp1, comp2) {
 }
 
 // export function move_children(from, to) {
-//   const from_elem = get_element(from)
-//   const to_elem = get_element(to)
+//   const from_elem = comp.element
+//   const to_elem = comp.element
 //   to_elem.replaceChildren(...from_elem.children)
 // }
 
 // ------------------------------- MODIFIER --------------------------------
 
 export function add_render(comp, onrender) {
-  const elem = get_element(comp)
+  const elem = comp.element
   elem.onrender = onrender
   return comp
 }
 
-export function add_unrender(
-  comp,
-  onunrender,
-  trigger
-) {
-  const elem = get_element(comp)
+export function add_unrender(comp, onunrender, trigger) {
+  const elem = comp.element
   const unrender_callback_fn = get_unrender_callback_fn(elem, trigger)
 
   elem.onunrender = (onend, onnew) => {
@@ -379,17 +369,17 @@ function get_unrender_callback_fn(elem, trigger) {
   switch (trigger.constructor.name) {
     case "Start":
       return (onend, onnew) => {
-        if (elem !== elem.renderRoot) {
-          return
-        }
+        // if (elem !== elem.renderRoot) {
+        //   return
+        // }
         onnew()
         elem.addEventListener("transitionend", create_once(onend))
       }
     case "End":
       return (onend, onnew) => {
-        if (elem !== elem.renderRoot) {
-          return
-        }
+        // if (elem !== elem.renderRoot) {
+        //   return
+        // }
         elem.ontransitionend = () => {
           onend()
           onnew()
@@ -410,16 +400,6 @@ function get_unrender_callback_fn(elem, trigger) {
 // }
 
 function execute_render(elem) {
-  execute_render_iter(elem)
-}
-
-function execute_render_iter(elem) {
-  ;[...elem.children].forEach((child) => {
-    if (child.hidden) {
-      return
-    }
-    execute_render_iter(child)
-  })
   if (elem.onrender) {
     requestAnimationFrame(() => {
       setTimeout(() => {
@@ -428,6 +408,22 @@ function execute_render_iter(elem) {
     })
   }
 }
+
+// function execute_render_iter(elem) {
+//   ;[...elem.children].forEach((child) => {
+//     if (child.hidden) {
+//       return
+//     }
+//     execute_render_iter(child)
+//   })
+//   if (elem.onrender) {
+//     requestAnimationFrame(() => {
+//       setTimeout(() => {
+//         elem.onrender()
+//       })
+//     })
+//   }
+// }
 
 function execute_unrender(elem, onend, onnew) {
   if (!elem) {
@@ -440,20 +436,19 @@ function execute_unrender(elem, onend, onnew) {
     onnew()
     return
   }
-  execute_unrender_iter(elem, onend, onnew)
+  // elem.renderRoot = root
+  elem.onunrender(onend, onnew)
 }
 
-// TODO: Remove recursion, only execute unrender on root??
-function execute_unrender_iter(elem, onend, onnew, root = elem) {
-  ;[...elem.children].forEach((child) => {
-    execute_unrender_iter(child, onend, onnew, root)
-  })
-  if (elem.onunrender) {
-    console.log("execute_unrender_iter", elem.id)
-    elem.renderRoot = root
-    elem.onunrender(onend, onnew)
-  }
-}
+// function execute_unrender_iter(elem, onend, onnew, root = elem) {
+//   ;[...elem.children].forEach((child) => {
+//     execute_unrender_iter(child, onend, onnew, root)
+//   })
+//   if (elem.onunrender) {
+//     elem.renderRoot = root
+//     elem.onunrender(onend, onnew)
+//   }
+// }
 
 // ------------------------------- STATE --------------------------------
 
@@ -501,8 +496,8 @@ export function add_reference(ref, component, type) {
 }
 
 export function read_reference(ref) {
-  const {type, component} = globalThis.reference_map.get(ref.id)
-  const elem = get_element(component)
+  const { type, component } = globalThis.reference_map.get(ref.id)
+  const elem = comp.element
   if (type === "InnerHTML") {
     return elem.innerHTML
   }
@@ -571,7 +566,7 @@ function encode_key(key) {
   let is_shift = key.shiftKey
   let is_alt = key.altKey
   if (key.modifiers) {
-    const modifier_names = key.modifiers.toArray().map((m) => m.constructor.name)
+    const modifier_names = key.modifiers.map((m) => m.constructor.name)
     is_short = modifier_names.includes("Short")
     is_shift = modifier_names.includes("Shift")
     is_alt = modifier_names.includes("Alt")
