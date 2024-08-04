@@ -32,7 +32,7 @@ pub type PreviewType {
 }
 
 // TODO: Move the event listener from index.html to here
-// TODO: Move init away from framework.start()
+// TODO: Move init away from novdom.start()
 pub fn init() {
   let drag_event: State(Option(DragEvent(a))) =
     state.create_with_id(drag_event_id, None)

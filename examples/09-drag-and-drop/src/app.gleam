@@ -1,101 +1,109 @@
-import gleam/list
 import gleam/io
+import gleam/list
 import novdom/attribute.{class, hidden}
 import novdom/component.{type Component, text}
+
 // import novdom/container.{hstack, vstack}
-import novdom/framework
+import novdom
 import novdom/html.{div}
-import novdom/motion.{ondrag, ondrop, Preview, Self}
+import novdom/motion.{Preview, Self, ondrag, ondrop}
 import novdom/state.{type State}
 
 pub fn main() {
-  use <- framework.start()
+  use <- novdom.start()
 
   // let state1 = state.create(["A", "B", "C"])
   // let state2 = state.create(["D", "E"])
 
   div([], [
-    div([
-      class("p-5 bg-blue-100 select-none"),
-      ondrag(
-        Self,
-        "A",
-        fn(e) {
-          io.debug("drag start")
-          Nil
-        },
-        fn(e, cleanup) {
-          io.debug("drag end")
-          cleanup()
-        },
-        fn(e) {
-          io.debug("drag drop")
-          Nil
-        },
-      )
-      ], [
-      text("Hello, world!"),
-    ]),
-    div([class("p-5 bg-red-100 select-none"),
-      ondrag(
-        Preview(div([class("h-8 w-8 bg-red-400")], [])),
-        "A",
-        fn(e) {
-          io.debug("drag start")
-          Nil
-        },
-        fn(e, cleanup) {
-          io.debug("drag end")
-          cleanup()
-        },
-        fn(e) {
-          io.debug("drag drop")
-          Nil
-        },
-      )], [
-      text("Hello, world!"),
-    ]),
-    div([class("p-5 bg-green-100 select-none"),
-      ondrag(
-        Preview(div([class("h-8 w-8 bg-green-400")], [])),
-        "A",
-        fn(e) {
-          io.debug("drag start")
-          Nil
-        },
-        fn(e, cleanup) {
-          io.debug("drag end")
-          cleanup()
-        },
-        fn(e) {
-          io.debug("drag drop failed")
-          Nil
-        },
-      )], [
-      text("Hello, world!"),
-    ]),
-
-    div([class("p-5 bg-yellow-100 select-none"),
-    ondrop(
-      fn(e) {
-        io.debug("drag over")
-        Nil
-      },
-      fn(e) {
-        io.debug("drag hover")
-        True
-      },
-      fn(e, cleanup) {
-        io.debug("drag drop success")
-        cleanup()
-      },
-    
-    )], [
-      text("DROP")
-    ])
+    div(
+      [
+        class("p-5 bg-blue-100 select-none"),
+        ondrag(
+          Self,
+          "A",
+          fn(e) {
+            io.debug("drag start")
+            Nil
+          },
+          fn(e, cleanup) {
+            io.debug("drag end")
+            cleanup()
+          },
+          fn(e) {
+            io.debug("drag drop")
+            Nil
+          },
+        ),
+      ],
+      [text("Hello, world!")],
+    ),
+    div(
+      [
+        class("p-5 bg-red-100 select-none"),
+        ondrag(
+          Preview(div([class("h-8 w-8 bg-red-400")], [])),
+          "A",
+          fn(e) {
+            io.debug("drag start")
+            Nil
+          },
+          fn(e, cleanup) {
+            io.debug("drag end")
+            cleanup()
+          },
+          fn(e) {
+            io.debug("drag drop")
+            Nil
+          },
+        ),
+      ],
+      [text("Hello, world!")],
+    ),
+    div(
+      [
+        class("p-5 bg-green-100 select-none"),
+        ondrag(
+          Preview(div([class("h-8 w-8 bg-green-400")], [])),
+          "A",
+          fn(e) {
+            io.debug("drag start")
+            Nil
+          },
+          fn(e, cleanup) {
+            io.debug("drag end")
+            cleanup()
+          },
+          fn(e) {
+            io.debug("drag drop failed")
+            Nil
+          },
+        ),
+      ],
+      [text("Hello, world!")],
+    ),
+    div(
+      [
+        class("p-5 bg-yellow-100 select-none"),
+        ondrop(
+          fn(e) {
+            io.debug("drag over")
+            Nil
+          },
+          fn(e) {
+            io.debug("drag hover")
+            True
+          },
+          fn(e, cleanup) {
+            io.debug("drag drop success")
+            cleanup()
+          },
+        ),
+      ],
+      [text("DROP")],
+    ),
   ])
 }
-
 // fn panel1(state) -> Component {
 //   use hstack <- hstack(container.HCenter, container.EvenSpacing)
 //   use letters <- state.render_children(state, hstack)

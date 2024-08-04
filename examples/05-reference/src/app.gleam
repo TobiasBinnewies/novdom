@@ -1,14 +1,14 @@
 import gleam/int
 import gleam/io
+import novdom
 import novdom/attribute.{class}
 import novdom/component.{text}
-import novdom/framework
 import novdom/html.{div}
 import novdom/listener.{onclick}
-import novdom/reference.{Value, InnerHTML}
+import novdom/reference.{InnerHTML, Value}
 
 pub fn main() {
-  use <- framework.start()
+  use <- novdom.start()
 
   let ref = reference.create()
 

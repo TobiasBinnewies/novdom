@@ -1,0 +1,1 @@
+-record(hotkey, {code :: binary(), modifiers :: list(novdom@hotkey:modifier())}).

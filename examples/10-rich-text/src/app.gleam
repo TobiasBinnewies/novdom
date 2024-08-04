@@ -1,14 +1,14 @@
 import gleam/io
+import novdom
 import novdom/attribute.{class}
 import novdom/component.{text}
-import novdom/framework
 import novdom/hotkey.{Alt, Hotkey, Id, Shift, Short, with_hotkey}
 import novdom/html.{div}
 import novdom/listener.{onclick, onkeydown}
 import novdom/rich_text
 
 pub fn main() {
-  use <- framework.start()
+  use <- novdom.start()
 
   hotkey.configure_ids([
     #("bold", [

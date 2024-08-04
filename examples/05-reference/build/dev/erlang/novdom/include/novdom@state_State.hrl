@@ -1,0 +1,1 @@
+-record(state, {state_id :: binary()}).

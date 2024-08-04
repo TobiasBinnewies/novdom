@@ -1,0 +1,6 @@
+{
+  "dependencies": { "quill": "^2.0.2", "tailwind-merge": "^2.4.0" },
+  "devDependencies": {
+    "jsdom": "^24.1.1"
+  }
+}

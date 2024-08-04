@@ -1,13 +1,17 @@
+import novdom
 import novdom/attribute.{class}
-import novdom/framework
 import novdom/html.{div, text, textln}
 
 pub fn main() {
-  use <- framework.start()
+  use <- novdom.start()
 
   // parent component
   div(
-    [class("p-5 bg-[#272822] select-none flex justify-center items-center h-screen w-screen size-100 text-2xl font-mono")],
+    [
+      class(
+        "p-5 bg-[#272822] select-none flex justify-center items-center h-screen w-screen size-100 text-2xl font-mono",
+      ),
+    ],
     // child components
     [
       // simple text component

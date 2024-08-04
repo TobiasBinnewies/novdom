@@ -1,0 +1,1 @@
+-record(dependency_not_found, {package :: binary()}).

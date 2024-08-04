@@ -1,15 +1,15 @@
 import gleam/int
 import gleam/io
+import novdom
 import novdom/attribute.{class}
 import novdom/component.{text}
-import novdom/framework
 import novdom/html.{div}
 import novdom/listener.{onclick}
 import novdom/state
 import novdom/state_component
 
 pub fn main() {
-  use <- framework.start()
+  use <- novdom.start()
 
   // state creation with initial value of 1
 

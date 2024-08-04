@@ -1,9 +1,10 @@
 import novdom/attribute.{class}
 import novdom/component.{text}
 import novdom/container.{
-  AroundSpacing, Center, EvenSpacing, Gap, Right, Left, Top, hstack, vstack, zstack, vscroll
+  AroundSpacing, Center, EvenSpacing, Gap, Left, Right, Top, hstack, vscroll,
+  vstack, zstack,
 }
-import novdom/framework
+import novdom
 import novdom/html.{div}
 import novdom/listener.{onclick}
 
@@ -11,7 +12,7 @@ import novdom/state
 import novdom/state_component.{utilize}
 
 pub fn main() {
-  use <- framework.start()
+  use <- novdom.start()
 
   let state = state.create("Hello, world!")
 
@@ -77,7 +78,6 @@ pub fn main() {
       text("Hello, world!"),
     ]),
   ])
-
   // zstack(Right, [
   //   div([class("p-10 bg-green-100 select-none")], [
   //     // simple text component

@@ -1,0 +1,1 @@
+-record(component, {id :: binary(), element :: novdom@component:html_element()}).
